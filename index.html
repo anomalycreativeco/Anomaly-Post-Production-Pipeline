@@ -75,7 +75,7 @@ select.sel:hover{border-color:var(--sage)}
 .row:last-child{border-bottom:none}
 .row:hover{background:var(--sage-tint)}
 .row.done{opacity:.5;background:var(--canvas)}
-.row.done .cli-name,.row.done .notes{text-decoration:line-through;text-decoration-color:var(--muted)}
+.row.done .cli-name,.row.done .notes,.row.done .ptitle{text-decoration:line-through;text-decoration-color:var(--muted)}
 
 .cb{appearance:none;width:20px;height:20px;border:2px solid var(--line-2);border-radius:6px;display:grid;place-items:center;transition:.12s;cursor:pointer;background:var(--paper)}
 .cb:hover{border-color:var(--sage)}
@@ -113,6 +113,7 @@ select.sel:hover{border-color:var(--sage)}
 .lk svg{width:15px;height:15px}
 .lk.off{opacity:.28;pointer-events:none}
 
+.ptitle{font-weight:600;color:var(--ink);font-size:13px;margin-bottom:3px;line-height:1.3}
 .notes{color:var(--ink-2);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .notes.empty{color:var(--muted);font-style:italic;opacity:.6}
 
@@ -252,6 +253,7 @@ textarea.inp{resize:vertical;min-height:64px}
       <input type="hidden" id="editId">
       <div class="frow"><label>Edit Type</label><div class="typepick" id="typePick"></div></div>
       <div class="frow"><label>Client</label><select class="inp" id="fClient"></select></div>
+      <div class="frow"><label>Project Name <span class="opt">— optional</span></label><input type="text" class="inp" id="fName" placeholder="e.g. June Brand Film  ·  Listing — 123 Oak St"></div>
       <div class="frow" id="dueRow"><label>Due Date</label><input type="date" class="inp" id="fDue"><div class="hint">Dailies don't use due dates.</div></div>
       <div class="frow"><label>Project / Resources Folder <span class="opt">— optional</span></label><input type="url" class="inp" id="fProject" placeholder="https://drive.google.com/..."></div>
       <div class="f2">
@@ -507,6 +509,7 @@ function rowHTML(t){
     <span class="type-cell"><span class="tbadge ${t.type}">${esc(tp.label)}</span></span>
     ${dueCell}
     <div style="min-width:0">
+      ${t.projectName?`<div class="ptitle">${esc(t.projectName)}</div>`:""}
       <div class="notes ${t.notes?"":"empty"}">${t.notes?esc(t.notes):"No notes"}</div>
       <div class="links">
         ${link(t.projectUrl,"Project / resources",ICON.link)}
@@ -553,14 +556,14 @@ function openAdd(){
   $("#editId").value="";$("#addTitle").textContent="New Entry";
   curType=(state.tab!=="master"&&TYPE_MAP[state.tab])?state.tab:"longform";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
-  $("#fDue").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
+  $("#fName").value="";$("#fDue").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
   $("#addScrim").classList.add("open");
 }
 function openEdit(id){
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
   $("#editId").value=id;$("#addTitle").textContent="Edit Entry";
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
-  $("#fClient").value=t.clientAbbr;$("#fDue").value=t.dueDate||"";
+  $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
   $("#addScrim").classList.add("open");
 }
@@ -568,7 +571,7 @@ async function saveEntry(){
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
-  const data={type:curType,clientAbbr:abbr,dueDate:due,projectUrl:$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:$("#fAudio").value.trim(),notes:$("#fNotes").value.trim()};
+  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),dueDate:due,projectUrl:$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:$("#fAudio").value.trim(),notes:$("#fNotes").value.trim()};
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
