@@ -47,7 +47,7 @@ a{color:inherit}
 .vt{border:none;background:transparent;padding:7px 13px;border-radius:8px;font-weight:600;font-size:13px;color:var(--ink-2)}
 .vt:hover{color:var(--ink)}
 .vt.active{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
-.cal{background:var(--paper);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+.cal{background:var(--paper);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .cal-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
 .cal-head h3{font-family:"Outfit";font-size:17px;margin:0;font-weight:700;letter-spacing:.01em}
 .cal-nav{display:flex;gap:6px}
@@ -56,7 +56,7 @@ a{color:inherit}
 .cal-nav button:hover,.cal-today:hover{border-color:var(--sage);background:var(--sage-tint)}
 .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--sage-tint);border-bottom:1px solid var(--line)}
 .cal-dow span{padding:8px 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);flex:1 1 auto;grid-auto-rows:minmax(112px,1fr)}
 .cal-cell{min-height:108px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:4px}
 .cal-cell:nth-child(7n){border-right:none}
 .cal-cell.other{background:var(--canvas)}
@@ -230,8 +230,8 @@ textarea.inp{resize:vertical;min-height:64px}
 .cseg:hover{color:var(--ink)}
 .cseg.active{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
 .cal-head .spacer{flex:1}
-.cal-grid.week{grid-template-columns:repeat(7,1fr)}
-.cal-cell.week{min-height:340px}
+.cal-grid.week{grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr}
+.cal-cell.week{min-height:240px}
 .cal-daylabel{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
 .cal-daylabel b{color:var(--ink);font-size:15px}
 .cal-cell.drag-over{background:var(--sage-soft);outline:2px dashed var(--sage);outline-offset:-3px}
@@ -255,6 +255,7 @@ textarea.inp{resize:vertical;min-height:64px}
 .donut-lbl{fill:var(--muted);font-family:"DM Sans";font-weight:600;font-size:9px;letter-spacing:.14em}
 .bar-num{fill:var(--ink);font-family:"Outfit";font-weight:700;font-size:13px}
 .bar-lbl{fill:var(--muted);font-family:"DM Sans";font-weight:600;font-size:11px}
+.bar-lbl.strong{fill:var(--ink);font-weight:700}
 @media(max-width:760px){.dash-grid{grid-template-columns:1fr}.cal-cell.week{min-height:200px}.search-ctl input{width:150px}}
 [data-theme="dark"]{--sage-soft:#243430;--sage-tint:#1c2624;--sage-800:#aecbc5;--ink:#e9edeb;--ink-2:#aeb6b3;--muted:#7c8481;--paper:#1b1f22;--canvas:#131618;--line:#262b2e;--line-2:#333a3d;--red-soft:#3a221d;--amber-soft:#37291a;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.45);--shadow-lg:0 12px 40px rgba(0,0,0,.6)}
 [data-theme="dark"] .abbr{background:var(--ink);color:#14171a}
@@ -374,6 +375,28 @@ textarea.inp{resize:vertical;min-height:64px}
   .fab{right:16px;bottom:84px;height:52px;padding:0 20px;font-size:14px}
   .fab svg{width:20px;height:20px}
 }
+@media(min-width:981px){.cal{min-height:calc(100vh - 252px)}}
+.seg-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-left:6px}
+.cal-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--canvas);flex:0 0 auto}
+.cal-legend .lg-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+.cal-legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.cal-legend .sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+@media(max-width:640px){.cal-legend{gap:6px 12px;padding:8px 12px}.cal-legend .lg{font-size:11px}.seg-label{display:none}}
+.stat.clickable{cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease}
+.stat.clickable:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:var(--sage)}
+.qbanner{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-2);background:var(--sage-tint);border:1px solid var(--line);border-radius:10px;padding:9px 14px;margin-bottom:12px}
+.qbanner b{color:var(--ink)}
+.qbanner .qclear{margin-left:auto;border:1px solid var(--line-2);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 12px;font-weight:600;font-size:12px;cursor:pointer}
+.qbanner .qclear:hover{border-color:var(--sage);background:var(--sage-tint)}
+.card.statbig{display:flex;flex-direction:column}
+.card.statbig .bigwrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:9px}
+.card.statbig .bignum{font-family:"Outfit";font-weight:700;font-size:52px;line-height:1;color:var(--sage-800)}
+.card.statbig .bigbar{width:128px;height:14px;border-radius:8px;background:var(--sage);opacity:.55}
+.card.statbig .bigsub{font-size:13px;color:var(--muted);font-weight:600}
+.cal-cell[data-date]{cursor:pointer}
+.cal-cell[data-date]:hover{background:var(--sage-tint)}
+.cal-cell.other[data-date]:hover{background:var(--sage-tint)}
+@media(min-width:981px){.dash{min-height:calc(100vh - 252px)}.dash-grid .card{min-height:232px}.donut-wrap svg{width:176px;height:176px}}
 </style>
 
 <div class="topbar">
@@ -495,7 +518,7 @@ const FIREBASE_CONFIG = {
 
 /* ============ config (editable, persisted) ============ */
 const DEFAULT_TYPES=[
-  {id:"daily",label:"Daily",due:false,color:"#7a9b95"},
+  {id:"daily",label:"Daily",due:true,color:"#7a9b95"},
   {id:"longform",label:"Long-Form",due:true,color:"#6b7fa8"},
   {id:"clips",label:"Clips",due:true,color:"#9a6b8a"},
   {id:"batch",label:"Batch",due:true,color:"#9a8a5f"},
@@ -601,7 +624,7 @@ const backend={
 
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
-let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
+let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
 
 async function init(){
   state.theme=LS.get("acc_theme","light");
@@ -624,7 +647,7 @@ function initLocal(){
   let cl=LS.get(LK_C,null); if(!cl||!cl.length){cl=SEED_CLIENTS.slice();LS.set(LK_C,cl);}
   let tk=LS.get(LK_T,null); if(tk===null){tk=sampleTasks();LS.set(LK_T,tk);}
   state.clients=cl; state.tasks=tk;
-  rebuildConfigUI(); setSyncStatus("local"); refreshUI();
+  rebuildConfigUI(); ensureDailyDue(); setSyncStatus("local"); refreshUI(); rollDailies();
 }
 async function initFirebase(){
   setSyncStatus("connecting");
@@ -641,11 +664,23 @@ async function initFirebase(){
     for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
     onSnapshot(collection(db,"config"),s=>{
       s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});});
-      rebuildConfigUI();setSyncStatus("ok");refreshUI();
+      rebuildConfigUI();ensureDailyDue();setSyncStatus("ok");refreshUI();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
-    onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
+    onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();rollDailies();},()=>setSyncStatus("err"));
   }catch(e){console.error("Firebase error:",e);setSyncStatus("err");fbReady=false;initLocal();}
+}
+async function ensureDailyDue(){
+  const d=TYPES.find(t=>t.id==="daily");
+  if(d&&d.due===false){d.due=true;rebuildTypeMaps();rebuildConfigUI();try{await backend.saveTypes();}catch(e){}}
+}
+async function rollDailies(){
+  const dt=TYPES.find(t=>t.id==="daily"); if(!dt||!dt.due)return;
+  const today=todayStr();
+  const stale=state.tasks.filter(t=>t.type==="daily"&&!t.completed&&t.dueDate&&t.dueDate<today);
+  if(!stale.length)return;
+  for(const t of stale){await backend.upsertTask({...t,dueDate:today});}
+  refreshUI();
 }
 async function afterConfigChange(){rebuildConfigUI();render();}
 
@@ -686,7 +721,7 @@ function buildTabs(){
   const el=$("#tabs");
   const tabs=[{id:"master",label:"Master"}].concat(TYPES.map(t=>({id:t.id,label:t.label})));
   el.innerHTML=tabs.map(t=>`<button class="tab${t.id==="master"?" master":""}${t.id===state.tab?" active":""}" data-tab="${t.id}">${t.label}<span class="ct" data-ct="${t.id}">0</span></button>`).join("");
-  el.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;buildTabs();render();});
+  el.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.quick=null;buildTabs();render();});
 }
 function updateCounts(){
   const active=state.tasks.filter(t=>!t.completed);
@@ -713,17 +748,30 @@ function sortTasks(arr){
 /* ============ render ============ */
 function render(){
   updateCounts();
+  const ctrls=document.querySelector(".controls");
+  if(ctrls)ctrls.style.display=(state.view==="dashboard"||state.view==="settings")?"none":"";
   const board=$("#board"),statsEl=$("#stats");
   const pool=state.tasks.filter(t=>passCat(t)&&passAsg(t)&&matchesSearch(t)&&(state.tab==="master"||t.type===state.tab));
   const activeRaw=pool.filter(t=>!t.completed);
   const active=sortTasks(activeRaw);
   statsEl.innerHTML=(state.tab==="master"&&state.view==="list")?statsStrip(activeRaw,pool.filter(t=>t.completed).length):"";
   const compSec=document.querySelector(".completed-sec");
-  if(compSec)compSec.style.display=state.view==="list"?"":"none";
+  if(compSec)compSec.style.display=(state.view==="list"&&state.quick!=="completed")?"":"none";
   if(state.view==="settings"){board.innerHTML=settingsHTML();bindSettings(board);}
   else if(state.view==="dashboard"){board.innerHTML=dashboardHTML();}
   else if(state.view==="calendar"){board.innerHTML=calendarHTML(activeRaw);bindCalendar(board);}
-  else{board.innerHTML=active.length?tableHTML(active):emptyHTML();bindRows(board);}
+  else{
+    let rows=active,qlabel=null;
+    if(state.tab==="master"&&state.quick){
+      if(state.quick==="overdue"){rows=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days<0);qlabel="Overdue";}
+      else if(state.quick==="due7"){rows=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days>=0&&dueInfo(t.dueDate).days<=6);qlabel="Due within 7 days";}
+      else if(state.quick==="completed"){rows=pool.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));qlabel="Completed";}
+    }
+    const banner=qlabel?`<div class="qbanner">Showing <b>${qlabel}</b> · ${rows.length}<button class="qclear" type="button">Clear filter</button></div>`:"";
+    board.innerHTML=banner+(rows.length?tableHTML(rows):emptyHTML());
+    bindRows(board);
+    const qc=board.querySelector(".qclear");if(qc)qc.onclick=()=>{state.quick=null;render();};
+  }
   const done=pool.filter(t=>t.completed).sort((x,y)=>(y.completedAt||0)-(x.completedAt||0));
   $("#compLabel").textContent=`Completed (${done.length})`;
   const cb=$("#compBody");
@@ -735,11 +783,11 @@ function statsStrip(active,doneCount){
   const soon=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days>=0&&dueInfo(t.dueDate).days<=6).length;
   const dailies=active.filter(t=>t.type==="daily").length;
   return `<div class="stats">
-    <div class="stat"><div class="sv">${active.length}</div><div class="sl">Active in pipeline</div></div>
-    <div class="stat over"><div class="sv">${over}</div><div class="sl">Overdue</div></div>
-    <div class="stat soon"><div class="sv">${soon}</div><div class="sl">Due within 7 days</div></div>
-    <div class="stat sage"><div class="sv">${dailies}</div><div class="sl">Active dailies</div></div>
-    <div class="stat"><div class="sv">${doneCount}</div><div class="sl">Completed</div></div>
+    <div class="stat clickable" data-stat="active"><div class="sv">${active.length}</div><div class="sl">Active in pipeline</div></div>
+    <div class="stat over clickable" data-stat="overdue"><div class="sv">${over}</div><div class="sl">Overdue</div></div>
+    <div class="stat soon clickable" data-stat="due7"><div class="sv">${soon}</div><div class="sl">Due within 7 days</div></div>
+    <div class="stat sage clickable" data-stat="dailies"><div class="sv">${dailies}</div><div class="sl">Active dailies</div></div>
+    <div class="stat clickable" data-stat="completed"><div class="sv">${doneCount}</div><div class="sl">Completed</div></div>
   </div>`;
 }
 function emptyHTML(){return `<div class="tbl"><div class="empty"><div class="eb">No entries here yet</div>Hit <b>New Entry</b> to add one to the pipeline.</div></div>`;}
@@ -766,8 +814,20 @@ function calHeader(title){
     <button class="cal-today" data-cal="today">Today</button>
     <span class="spacer"></span>
     <div class="cal-seg">${["month","week"].map(mo=>`<button class="cseg ${state.calMode===mo?"active":""}" data-mode="${mo}">${mo[0].toUpperCase()+mo.slice(1)}</button>`).join("")}</div>
+    <span class="seg-label">Color</span>
     <div class="cal-seg" title="Color chips by">${[["type","Type"],["urgency","Urgency"]].map(([k,l])=>`<button class="cseg ${state.chipColor===k?"active":""}" data-color="${k}">${l}</button>`).join("")}</div>
   </div>`;
+}
+function calLegend(){
+  let items, title;
+  if(state.chipColor==="urgency"){
+    title="Urgency";
+    items=[["var(--red)","Overdue"],["var(--amber)","Due soon (≤3 days)"],["var(--sage)","This week"],["#6b7fa8","Later"],["#b8bcba","No date"]];
+  }else{
+    title="Edit type";
+    items=TYPES.map(tp=>[tp.color,tp.label]);
+  }
+  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}</div>`;
 }
 function nodateStrip(nodate){return nodate.length?`<div class="cal-nodate"><span class="lbl">No date / dailies</span>${nodate.map(calChip).join("")}</div>`:"";}
 function calendarHTML(tasks){
@@ -786,7 +846,7 @@ function calendarHTML(tasks){
       const chips=(dated[ds]||[]).map(calChip).join("");
       cells+=`<div class="cal-cell week ${isToday?"today":""}" data-date="${ds}"><span class="cal-daylabel">${dow[d.getDay()]} <b>${d.getDate()}</b></span>${chips}</div>`;
     }
-    return `<div class="cal">${calHeader(title)}<div class="cal-grid week">${cells}</div>${nodateStrip(nodate)}</div>`;
+    return `<div class="cal">${calHeader(title)}${calLegend()}<div class="cal-grid week">${cells}</div>${nodateStrip(nodate)}</div>`;
   }
   const month=state.calMonth, y=month.getFullYear(), m=month.getMonth();
   const title=month.toLocaleDateString(undefined,{month:"long",year:"numeric"});
@@ -800,7 +860,7 @@ function calendarHTML(tasks){
     cells+=`<div class="cal-cell ${other?"other":""} ${isToday?"today":""}" data-date="${ds}"><span class="cal-num">${d.getDate()}</span>${chips}</div>`;
   }
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
-  return `<div class="cal">${calHeader(title)}${dowHTML}<div class="cal-grid">${cells}</div>${nodateStrip(nodate)}</div>`;
+  return `<div class="cal">${calHeader(title)}${calLegend()}${dowHTML}<div class="cal-grid">${cells}</div>${nodateStrip(nodate)}</div>`;
 }
 function bindCalendar(scope){
   scope.querySelectorAll(".cchip[data-id]").forEach(b=>{
@@ -813,6 +873,7 @@ function bindCalendar(scope){
   scope.querySelectorAll(".cal-cell[data-date]").forEach(cell=>{
     cell.addEventListener("dragover",e=>{e.preventDefault();cell.classList.add("drag-over");});
     cell.addEventListener("dragleave",()=>cell.classList.remove("drag-over"));
+    cell.addEventListener("click",e=>{if(e.target.closest(".cchip"))return;openAdd(cell.dataset.date);});
     cell.addEventListener("drop",async e=>{
       e.preventDefault();cell.classList.remove("drag-over");
       const id=e.dataTransfer.getData("text/plain"),t=state.tasks.find(x=>x.id===id);
@@ -846,12 +907,27 @@ function dashboardHTML(){
   const dailies=active.filter(t=>t.type==="daily").length;
   const doneAll=all.filter(t=>t.completed).length;
   const kpi=`<div class="stats">
-    <div class="stat"><div class="sv">${active.length}</div><div class="sl">Active in pipeline</div></div>
-    <div class="stat over"><div class="sv">${over}</div><div class="sl">Overdue</div></div>
-    <div class="stat soon"><div class="sv">${soon}</div><div class="sl">Due within 7 days</div></div>
-    <div class="stat sage"><div class="sv">${dailies}</div><div class="sl">Active dailies</div></div>
-    <div class="stat"><div class="sv">${doneAll}</div><div class="sl">Completed all-time</div></div>
+    <div class="stat clickable" data-stat="active"><div class="sv">${active.length}</div><div class="sl">Active in pipeline</div></div>
+    <div class="stat over clickable" data-stat="overdue"><div class="sv">${over}</div><div class="sl">Overdue</div></div>
+    <div class="stat soon clickable" data-stat="due7"><div class="sv">${soon}</div><div class="sl">Due within 7 days</div></div>
+    <div class="stat sage clickable" data-stat="dailies"><div class="sv">${dailies}</div><div class="sl">Active dailies</div></div>
+    <div class="stat clickable" data-stat="completed"><div class="sv">${doneAll}</div><div class="sl">Completed all-time</div></div>
   </div>`;
+  const lw=lastWeekPct();
+  const lwCard=`<div class="card statbig"><div class="card-h">Last week completion</div>
+    <div class="bigwrap">
+      ${lw.pct===null?`<div class="bigbar"></div>`:`<div class="bignum">${lw.pct}%</div>`}
+      <div class="bigsub">${lw.pct===null?"Nothing was due last week":`${lw.done} of ${lw.total} item${lw.total===1?"":"s"} due last week completed`}</div>
+    </div></div>`;
+  const linePts=completedLineData();
+  const ot=onTimeRate();
+  const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const otCard=`<div class="card statbig"><div class="card-h">On-time rate · ${MN[new Date().getMonth()]}</div>
+    <div class="bigwrap">
+      ${ot.pct===null?`<div class="bigbar"></div>`:`<div class="bignum">${ot.pct}%</div>`}
+      <div class="bigsub">${ot.pct===null?"No items completed yet this month":`${ot.onTime} of ${ot.total} completed on or before due`}</div>
+    </div></div>`;
+  const upPts=upcomingLoadData();
   const catData=CATEGORIES.map(c=>({label:c.label,value:active.filter(t=>(clientByAbbr(t.clientAbbr)||{}).cat===c.key).length,color:c.color})).filter(d=>d.value>0);
   const typeData=TYPES.map(tp=>({label:tp.label,value:active.filter(t=>t.type===tp.id).length,color:tp.color})).filter(d=>d.value>0);
   const editorData=EDITORS_LIST.map(e=>({label:e.name,value:active.filter(t=>t.assignee===e.name).length,color:e.color})).filter(d=>d.value>0);
@@ -859,11 +935,78 @@ function dashboardHTML(){
   const ws0=weekStart(new Date()),weeks=[];
   for(let i=5;i>=0;i--){const s=new Date(ws0.getFullYear(),ws0.getMonth(),ws0.getDate()-i*7);const e=new Date(s.getFullYear(),s.getMonth(),s.getDate()+7);weeks.push({label:(s.getMonth()+1)+"/"+s.getDate(),value:all.filter(t=>t.completed&&t.completedAt&&t.completedAt>=s.getTime()&&t.completedAt<e.getTime()).length});}
   return `<div class="dash">${kpi}<div class="dash-grid">
+    <div class="card wide"><div class="card-h">Posts completed per week · 52-week view (from Jun 1, 2026)</div>${lineSVG(linePts)}</div>
+    <div class="card wide"><div class="card-h">Upcoming load · next 14 days</div>${miniBars(upPts)}</div>
+    ${lwCard}
+    ${otCard}
+    <div class="card"><div class="card-h">Completed per week (last 6)</div>${barsSVG(weeks)}</div>
     <div class="card"><div class="card-h">Active by category</div>${donutSVG(catData)}</div>
     <div class="card"><div class="card-h">Active by edit type</div>${donutSVG(typeData)}</div>
     <div class="card"><div class="card-h">Active by editor</div>${donutSVG(editorData)}</div>
-    <div class="card"><div class="card-h">Completed per week (last 6)</div>${barsSVG(weeks)}</div>
   </div></div>`;
+}
+function lastWeekPct(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const dow=(today.getDay()+6)%7;
+  const thisMon=new Date(today.getFullYear(),today.getMonth(),today.getDate()-dow);
+  const prevMon=new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()-7);
+  const ds=ymd(prevMon),de=ymd(thisMon);
+  const due=state.tasks.filter(t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate&&t.dueDate>=ds&&t.dueDate<de);
+  const done=due.filter(t=>t.completed).length;
+  return {pct:due.length?Math.round(done/due.length*100):null,done,total:due.length};
+}
+function completedLineData(){
+  const START=new Date(2026,5,1);START.setHours(0,0,0,0);
+  const now=Date.now(),pts=[];
+  for(let i=0;i<52;i++){
+    const sd=new Date(START.getFullYear(),START.getMonth(),START.getDate()+i*7);
+    const ed=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate()+7);
+    const value=state.tasks.filter(t=>t.completed&&t.completedAt&&t.completedAt>=sd.getTime()&&t.completedAt<ed.getTime()).length;
+    pts.push({date:sd,value,current:now>=sd.getTime()&&now<ed.getTime()});
+  }
+  return pts;
+}
+function lineSVG(points){
+  const W=1040,H=240,padL=34,padR=18,padT=18,padB=36,n=points.length;
+  const max=Math.max(1,...points.map(p=>p.value)),ix=W-padL-padR,iy=H-padT-padB;
+  const X=i=>padL+(n<=1?0:ix*i/(n-1)),Y=v=>padT+iy*(1-v/max);
+  const ticks=[...new Set([0,Math.ceil(max/2),max])];
+  const grid=ticks.map(v=>`<line x1="${padL}" y1="${Y(v).toFixed(1)}" x2="${W-padR}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${padL-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" class="bar-lbl">${v}</text>`).join("");
+  const line=points.map((p,i)=>`${i?"L":"M"}${X(i).toFixed(1)} ${Y(p.value).toFixed(1)}`).join(" ");
+  const area=`M${X(0).toFixed(1)} ${Y(0).toFixed(1)} `+points.map((p,i)=>`L${X(i).toFixed(1)} ${Y(p.value).toFixed(1)}`).join(" ")+` L${X(n-1).toFixed(1)} ${Y(0).toFixed(1)} Z`;
+  const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let lastM=-1;const xl=points.map((p,i)=>{const m=p.date.getMonth();if(m!==lastM){lastM=m;return `<line x1="${X(i).toFixed(1)}" y1="${padT}" x2="${X(i).toFixed(1)}" y2="${H-padB}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 3"/><text x="${X(i).toFixed(1)}" y="${H-12}" text-anchor="middle" class="bar-lbl">${MON[m]}${m===0?" "+p.date.getFullYear():""}</text>`;}return "";}).join("");
+  const ci=points.findIndex(p=>p.current);
+  const marker=ci>=0?`<circle cx="${X(ci).toFixed(1)}" cy="${Y(points[ci].value).toFixed(1)}" r="4.5" fill="var(--sage)" stroke="var(--paper)" stroke-width="2"/>`:"";
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet">${grid}${xl}<path d="${area}" fill="rgba(146,171,167,.14)" stroke="none"/><path d="${line}" fill="none" stroke="var(--sage)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${marker}</svg>`;
+}
+function upcomingLoadData(){
+  const today=new Date();today.setHours(0,0,0,0);const out=[];
+  for(let i=0;i<14;i++){
+    const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()+i),ds=ymd(d);
+    const value=state.tasks.filter(t=>!t.completed&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate===ds).length;
+    out.push({label:(d.getMonth()+1)+"/"+d.getDate(),value,isToday:i===0,weekend:d.getDay()===0||d.getDay()===6});
+  }
+  return out;
+}
+function onTimeRate(){
+  const now=new Date(),mStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  const done=state.tasks.filter(t=>t.completed&&t.completedAt&&t.completedAt>=mStart&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate);
+  if(!done.length)return {pct:null,onTime:0,total:0};
+  const onTime=done.filter(t=>{const c=new Date(t.completedAt);return ymd(new Date(c.getFullYear(),c.getMonth(),c.getDate()))<=t.dueDate;}).length;
+  return {pct:Math.round(onTime/done.length*100),onTime,total:done.length};
+}
+function miniBars(items){
+  const W=1040,H=190,pad=30,n=items.length,iy=H-pad-30,max=Math.max(1,...items.map(d=>d.value));
+  const slot=(W-pad*2)/n,bw=Math.min(46,slot*0.62);
+  const bars=items.map((d,i)=>{
+    const x=pad+i*slot+(slot-bw)/2,bh=iy*(d.value/max),y=H-30-bh;
+    const fill=d.weekend?"#c2d0cd":"var(--sage)",out=d.isToday?' stroke="var(--sage-800)" stroke-width="2"':"";
+    const num=d.value?`<text x="${(x+bw/2).toFixed(1)}" y="${(y-7).toFixed(1)}" text-anchor="middle" class="bar-num">${d.value}</text>`:"";
+    const lbl=`<text x="${(x+bw/2).toFixed(1)}" y="${H-10}" text-anchor="middle" class="bar-lbl ${d.isToday?"strong":""}">${d.label}</text>`;
+    return `<g><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,2).toFixed(1)}" rx="5" fill="${fill}"${out}/>${num}${lbl}</g>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
 }
 function donutSVG(data){
   const total=data.reduce((s,d)=>s+d.value,0);
@@ -987,11 +1130,14 @@ function buildTypePick(){
 }
 function syncDueRow(){$("#dueRow").classList.toggle("hidden",!TYPE_MAP[curType].due);}
 function fillClientSelect(sel){sel.innerHTML=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.abbr)}">${esc(c.abbr)} — ${esc(c.name)}</option>`).join("");}
-function openAdd(){
+function openAdd(prefillDate){
   $("#editId").value="";$("#addTitle").textContent="New Entry";
-  curType=(state.tab!=="master"&&TYPE_MAP[state.tab])?state.tab:"longform";
+  const tabType=(state.tab!=="master"&&TYPE_MAP[state.tab])?state.tab:null;
+  if(prefillDate)curType=(tabType&&TYPE_MAP[tabType].due)?tabType:"longform";
+  else curType=tabType||"longform";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
-  $("#fName").value="";$("#fAssignee").value="";$("#fDue").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
+  $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
+  $("#fDue").value=prefillDate||"";
   $("#addScrim").classList.add("open");
 }
 function openEdit(id){
@@ -1202,12 +1348,20 @@ function bindSettings(scope){
   });
 }
 
+function setView(v){state.view=v;document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
+function onStatClick(kind){
+  if(kind==="dailies"){state.quick=null;state.tab="daily";buildTabs();setView("list");}
+  else if(kind==="active"){state.quick=null;state.tab="master";buildTabs();setView("list");}
+  else{state.quick=kind;state.tab="master";buildTabs();setView("list");}
+  render();
+}
 function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
   $("#catFilter").onchange=e=>{state.cat=e.target.value;render();};
   $("#asgFilter").onchange=e=>{state.assignee=e.target.value;render();};
   $("#sortBy").onchange=e=>{state.sort=e.target.value;render();};
-  document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x===b));render();});
+  document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;state.quick=null;document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x===b));render();});
+  document.addEventListener("click",e=>{const st=e.target.closest(".stat[data-stat]");if(st)onStatClick(st.dataset.stat);});
   $("#searchBox").oninput=e=>{state.search=e.target.value;render();};
   $("#themeBtn").onclick=toggleTheme;
   $("#compToggle").onclick=()=>{$("#compToggle").classList.toggle("open");$("#compBody").classList.toggle("open");};
