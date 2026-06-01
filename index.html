@@ -397,6 +397,13 @@ textarea.inp{resize:vertical;min-height:64px}
 .cal-cell[data-date]:hover{background:var(--sage-tint)}
 .cal-cell.other[data-date]:hover{background:var(--sage-tint)}
 @media(min-width:981px){.dash{min-height:calc(100vh - 252px)}.dash-grid .card{min-height:232px}.donut-wrap svg{width:176px;height:176px}}
+.daily-split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.daily-col .dc-head{display:flex;align-items:center;gap:8px;margin:0 2px 9px;font-family:"Outfit";font-weight:700;font-size:14px;color:var(--ink)}
+.daily-col .dc-count{font-size:12px;font-weight:700;color:var(--ink-2);background:var(--sage-tint);border-radius:20px;padding:1px 10px}
+.daily-col .dc-empty{background:var(--paper);border:1px dashed var(--line-2);border-radius:13px;padding:28px 16px;text-align:center;color:var(--muted);font-weight:600;font-size:13px}
+.daily-split .tbl.compact .row,.daily-split .tbl.compact .head-row{grid-template-columns:32px minmax(0,1.1fr) 88px minmax(0,1.4fr) 58px;gap:10px;padding:10px 14px}
+.daily-split .tbl.compact .cat-cell,.daily-split .tbl.compact .h-cat,.daily-split .tbl.compact .type-cell,.daily-split .tbl.compact .h-type{display:none}
+@media(max-width:860px){.daily-split{grid-template-columns:1fr;gap:18px}}
 </style>
 
 <div class="topbar">
@@ -760,6 +767,9 @@ function render(){
   if(state.view==="settings"){board.innerHTML=settingsHTML();bindSettings(board);}
   else if(state.view==="dashboard"){board.innerHTML=dashboardHTML();}
   else if(state.view==="calendar"){board.innerHTML=calendarHTML(activeRaw);bindCalendar(board);}
+  else if(state.view==="list"&&state.tab==="daily"){
+    board.innerHTML=dailySplitHTML(active);bindRows(board);
+  }
   else{
     let rows=active,qlabel=null;
     if(state.tab==="master"&&state.quick){
@@ -1029,21 +1039,25 @@ function setThemeIcon(){const b=$("#themeBtn");if(b)b.innerHTML=state.theme==="d
 function toggleTheme(){state.theme=state.theme==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",state.theme);LS.set("acc_theme",state.theme);setThemeIcon();}
 
 /* ============ celebration ============ */
-function isAfter5ET(){
-  try{const h=parseInt(new Date().toLocaleString("en-US",{timeZone:"America/New_York",hour:"2-digit",hour12:false}),10);return h>=17;}
-  catch(e){return new Date().getHours()>=17;}
+function isAfter3ET(){
+  try{const h=parseInt(new Date().toLocaleString("en-US",{timeZone:"America/New_York",hour:"2-digit",hour12:false}),10);return h>=15;}
+  catch(e){return new Date().getHours()>=15;}
 }
-let fxRunning=false;
+let fxToken=0, fxBannerTimer=null;
 function celebrate(){
-  if(fxRunning)return;fxRunning=true;
   const cv=$("#fxCanvas"),banner=$("#fxBanner");
+  if(!cv||!banner)return;
+  const token=++fxToken;
   cv.classList.add("show");banner.classList.add("show");
+  if(fxBannerTimer)clearTimeout(fxBannerTimer);
+  fxBannerTimer=setTimeout(()=>{if(token===fxToken)banner.classList.remove("show");},4400);
   const ctx=cv.getContext("2d"),dpr=window.devicePixelRatio||1;
   cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
   const colors=["#92ABA7","#b97f8e","#6b7fa8","#6fa37f","#c8893c","#e7ecea","#7a6aa8"];
   let parts=[],start=performance.now(),last=start,spawn=0;
   function burst(x,y){const col=colors[Math.floor(Math.random()*colors.length)];for(let i=0;i<70;i++){const a=Math.random()*Math.PI*2,sp=2+Math.random()*4.5;parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col:Math.random()<0.5?col:colors[Math.floor(Math.random()*colors.length)]});}}
   function frame(now){
+    if(token!==fxToken)return;
     const dt=Math.min(34,now-last);last=now;
     ctx.clearRect(0,0,innerWidth,innerHeight);
     spawn-=dt;
@@ -1053,14 +1067,20 @@ function celebrate(){
     parts.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,3,0,7);ctx.fill();});
     ctx.globalAlpha=1;
     if(now-start<5200||parts.length)requestAnimationFrame(frame);
-    else{cv.classList.remove("show");ctx.clearRect(0,0,innerWidth,innerHeight);fxRunning=false;}
+    else{cv.classList.remove("show");ctx.clearRect(0,0,innerWidth,innerHeight);}
   }
   requestAnimationFrame(frame);
-  setTimeout(()=>banner.classList.remove("show"),4400);
 }
-function tableHTML(rows){
+function tableHTML(rows,compact){
   const head=`<div class="head-row"><span></span><span>Client</span><span class="h-cat">Category</span><span class="h-type">Type</span><span class="h-due">Due</span><span>Notes / Links</span><span></span></div>`;
-  return `<div class="tbl">${head}${rows.map(rowHTML).join("")}</div>`;
+  return `<div class="tbl${compact?" compact":""}">${head}${rows.map(rowHTML).join("")}</div>`;
+}
+function dailySplitHTML(active){
+  const today=todayStr();
+  const todays=active.filter(t=>t.dueDate===today);
+  const later=active.filter(t=>t.dueDate!==today).sort((a,b)=>{if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate<b.dueDate?-1:a.dueDate>b.dueDate?1:0;});
+  const col=(title,rows,empty)=>`<div class="daily-col"><div class="dc-head"><span class="dc-title">${title}</span><span class="dc-count">${rows.length}</span></div>${rows.length?tableHTML(rows,true):`<div class="dc-empty">${empty}</div>`}</div>`;
+  return `<div class="daily-split">${col("Due today",todays,"Nothing due today")}${col("Due later",later,"Nothing scheduled later")}</div>`;
 }
 const ICON={
   link:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>`,
@@ -1108,12 +1128,13 @@ function assigneeAvatar(t){if(!t.assignee)return"";return `<span class="ava" sty
 /* ============ task ops ============ */
 async function toggleDone(id){
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
-  const completingDaily = !t.completed && TYPE_MAP[t.type] && !TYPE_MAP[t.type].due;
+  const wasOpen=!t.completed, today=todayStr();
+  const wasDueToday = wasOpen && t.type==="daily" && t.dueDate===today;
   await backend.upsertTask({...t,completed:!t.completed,completedAt:!t.completed?Date.now():null});
   refreshUI();toast(!t.completed?"Marked complete":"Reopened");
-  if(completingDaily){
-    const dailies=state.tasks.filter(x=>TYPE_MAP[x.type]&&!TYPE_MAP[x.type].due);
-    if(dailies.length>0 && dailies.every(x=>x.completed) && isAfter5ET()) celebrate();
+  if(wasDueToday){
+    const todays=state.tasks.filter(x=>x.type==="daily"&&x.dueDate===today);
+    if(todays.length>0 && todays.every(x=>x.completed) && isAfter3ET()) celebrate();
   }
 }
 async function delTask(id){
