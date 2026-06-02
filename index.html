@@ -404,6 +404,14 @@ textarea.inp{resize:vertical;min-height:64px}
 .daily-split .tbl.compact .row,.daily-split .tbl.compact .head-row{grid-template-columns:32px minmax(0,1.1fr) 88px minmax(0,1.4fr) 58px;gap:10px;padding:10px 14px}
 .daily-split .tbl.compact .cat-cell,.daily-split .tbl.compact .h-cat,.daily-split .tbl.compact .type-cell,.daily-split .tbl.compact .h-type{display:none}
 @media(max-width:860px){.daily-split{grid-template-columns:1fr;gap:18px}}
+.lock-note{font-size:13px;color:var(--ink-2);line-height:1.5;margin:0 0 14px}
+.lock-err{color:var(--red);font-size:12px;font-weight:600;min-height:16px;margin-top:8px}
+.pnav.navlocked{opacity:.38;pointer-events:none}
+body.locked .rowacts{display:none}
+body.locked .row .cb{pointer-events:none;opacity:.45}
+body.locked .cal-cell[data-date]{cursor:default}
+body.locked .cal-cell[data-date]:hover{background:transparent}
+body.locked .cchip[draggable="true"]{cursor:pointer}
 </style>
 
 <div class="topbar">
@@ -412,6 +420,7 @@ textarea.inp{resize:vertical;min-height:64px}
     <div class="bt"><span class="b1">Anomaly</span><span class="b2">Editing Pipeline</span></div>
   </div>
   <div class="spacer"></div>
+  <button class="btn icon-only" id="lockBtn" title="View only" aria-label="Lock state" style="display:none"></button>
   <button class="btn icon-only" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme"></button>
 </div>
 
@@ -490,14 +499,26 @@ textarea.inp{resize:vertical;min-height:64px}
       <div class="frow"><label>Project Name <span class="opt">— optional</span></label><input type="text" class="inp" id="fName" placeholder="e.g. June Brand Film  ·  Listing — 123 Oak St"></div>
       <div class="frow"><label>Editor <span class="opt">— optional</span></label><select class="inp" id="fAssignee"></select></div>
       <div class="frow" id="dueRow"><label>Due Date</label><input type="date" class="inp" id="fDue"><div class="hint">Dailies don't use due dates.</div></div>
-      <div class="frow"><label>Project / Resources Folder <span class="opt">— optional</span></label><input type="url" class="inp" id="fProject" placeholder="https://drive.google.com/..."></div>
+      <div class="frow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"></div>
       <div class="f2">
         <div class="frow"><label>Footage Folder <span class="opt">— optional</span></label><input type="url" class="inp" id="fFootage" placeholder="Link to footage"></div>
         <div class="frow"><label>Audio File <span class="opt">— optional</span></label><input type="url" class="inp" id="fAudio" placeholder="Link to audio"></div>
       </div>
       <div class="frow"><label>Notes <span class="opt">— optional</span></label><textarea class="inp" id="fNotes" placeholder="Anything the editor should know…"></textarea></div>
     </div>
-    <div class="mf"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveEntry">Save Entry</button></div>
+    <div class="mf"><button class="btn" id="dupEntry" type="button" style="display:none">Duplicate</button><span style="flex:1"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveEntry">Save Entry</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="lockScrim">
+  <div class="modal" style="max-width:430px">
+    <div class="mh"><h2>Enter password to edit</h2></div>
+    <div class="mb">
+      <p class="lock-note">This pipeline is <b>view-only</b>. Enter the team password to make changes. You'll stay unlocked on this device for 24 hours of activity.</p>
+      <input type="password" class="inp" id="lockPw" placeholder="Team password" autocomplete="current-password">
+      <div class="lock-err" id="lockErr"></div>
+    </div>
+    <div class="mf"><button class="btn" id="lockCancel">Just viewing</button><button class="btn primary" id="lockGo">Unlock editing</button></div>
   </div>
 </div>
 
@@ -627,11 +648,15 @@ const backend={
   async saveEditors(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","editors"),{list:EDITORS_LIST});else LS.set(LK_ED,EDITORS_LIST);},
   async saveCategories(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","categories"),{list:CATEGORIES});else LS.set(LK_CAT,CATEGORIES);},
   async saveTypes(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","types"),{list:TYPES});else LS.set(LK_TYP,TYPES);},
+  async saveSecurity(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","security"),{list:SEC_HASH?[SEC_HASH]:[]});else LS.set(LK_SEC,SEC_HASH||"");},
 };
 
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
-let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
+let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
+const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", SALT="acc::";
+let SEC_HASH=null, lockPrompted=false;
+function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);}
 
 async function init(){
   state.theme=LS.get("acc_theme","light");
@@ -654,7 +679,8 @@ function initLocal(){
   let cl=LS.get(LK_C,null); if(!cl||!cl.length){cl=SEED_CLIENTS.slice();LS.set(LK_C,cl);}
   let tk=LS.get(LK_T,null); if(tk===null){tk=sampleTasks();LS.set(LK_T,tk);}
   state.clients=cl; state.tasks=tk;
-  rebuildConfigUI(); ensureDailyDue(); setSyncStatus("local"); refreshUI(); rollDailies();
+  SEC_HASH=LS.get(LK_SEC,"")||null;
+  rebuildConfigUI(); ensureDailyDue(); setSyncStatus("local"); refreshUI(); rollDailies(); refreshLock();
 }
 async function initFirebase(){
   setSyncStatus("connecting");
@@ -670,8 +696,8 @@ async function initFirebase(){
     const seeds={editors:EDITORS_LIST,categories:CATEGORIES,types:TYPES};
     for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
     onSnapshot(collection(db,"config"),s=>{
-      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});});
-      rebuildConfigUI();ensureDailyDue();setSyncStatus("ok");refreshUI();
+      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;});
+      rebuildConfigUI();ensureDailyDue();setSyncStatus("ok");refreshUI();refreshLock();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
     onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();rollDailies();},()=>setSyncStatus("err"));
@@ -886,6 +912,7 @@ function bindCalendar(scope){
     cell.addEventListener("click",e=>{if(e.target.closest(".cchip"))return;openAdd(cell.dataset.date);});
     cell.addEventListener("drop",async e=>{
       e.preventDefault();cell.classList.remove("drag-over");
+      if(state.locked)return;
       const id=e.dataTransfer.getData("text/plain"),t=state.tasks.find(x=>x.id===id);
       if(!t||!(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due))return;
       const nd=cell.dataset.date;if(t.dueDate===nd)return;
@@ -1103,12 +1130,13 @@ function rowHTML(t){
       ${(t.assignee||t.projectName)?`<div class="nhead">${assigneeAvatar(t)}${t.projectName?`<span class="ptitle">${esc(t.projectName)}</span>`:""}</div>`:""}
       <div class="notes ${t.notes?"":"empty"}">${t.notes?esc(t.notes):"No notes"}</div>
       <div class="links">
-        ${link(t.projectUrl,"Project / resources",ICON.link)}
+        ${link(t.projectUrl,"Reference / inspiration video",ICON.link)}
         ${link(t.footageUrl,"Footage folder",ICON.folder)}
         ${link(t.audioUrl,"Audio file",ICON.audio)}
       </div>
     </div>
     <div class="rowacts">
+      <button class="ic" data-act="dup" title="Duplicate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
       <button class="ic" data-act="edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
       <button class="ic del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
     </div>
@@ -1118,6 +1146,7 @@ function bindRows(scope){
   scope.querySelectorAll(".row[data-id]").forEach(r=>{
     const id=r.dataset.id;
     r.querySelector('[data-act="toggle"]')?.addEventListener("change",()=>toggleDone(id));
+    r.querySelector('[data-act="dup"]')?.addEventListener("click",()=>dupTask(id));
     r.querySelector('[data-act="edit"]')?.addEventListener("click",()=>openEdit(id));
     r.querySelector('[data-act="del"]')?.addEventListener("click",()=>delTask(id));
   });
@@ -1131,13 +1160,21 @@ async function toggleDone(id){
   const wasOpen=!t.completed, today=todayStr();
   const wasDueToday = wasOpen && t.type==="daily" && t.dueDate===today;
   await backend.upsertTask({...t,completed:!t.completed,completedAt:!t.completed?Date.now():null});
-  refreshUI();toast(!t.completed?"Marked complete":"Reopened");
+  touchActivity();refreshUI();toast(!t.completed?"Marked complete":"Reopened");
   if(wasDueToday){
     const todays=state.tasks.filter(x=>x.type==="daily"&&x.dueDate===today);
     if(todays.length>0 && todays.every(x=>x.completed) && isAfter3ET()) celebrate();
   }
 }
+async function dupTask(id){
+  if(state.locked)return;
+  const t=state.tasks.find(x=>x.id===id);if(!t)return;
+  const copy={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),projectName:"(copy) "+(t.projectName||clientNameFor(t)),completed:false,completedAt:null,createdAt:Date.now()};
+  await backend.upsertTask(copy);touchActivity();refreshUI();toast("Project duplicated");
+}
+function clientNameFor(t){const c=clientByAbbr(t.clientAbbr);return c?c.name:t.clientAbbr;}
 async function delTask(id){
+  if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
   if(!confirm(`Delete this ${TYPE_MAP[t.type]?.label} entry for ${clientByAbbr(t.clientAbbr)?.name||t.clientAbbr}?`))return;
   await backend.removeTask(id);refreshUI();toast("Deleted");
@@ -1152,6 +1189,7 @@ function buildTypePick(){
 function syncDueRow(){$("#dueRow").classList.toggle("hidden",!TYPE_MAP[curType].due);}
 function fillClientSelect(sel){sel.innerHTML=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.abbr)}">${esc(c.abbr)} — ${esc(c.name)}</option>`).join("");}
 function openAdd(prefillDate){
+  if(state.locked)return;
   $("#editId").value="";$("#addTitle").textContent="New Entry";
   const tabType=(state.tab!=="master"&&TYPE_MAP[state.tab])?state.tab:null;
   if(prefillDate)curType=(tabType&&TYPE_MAP[tabType].due)?tabType:"longform";
@@ -1159,17 +1197,21 @@ function openAdd(prefillDate){
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
   $("#fDue").value=prefillDate||"";
+  const de=$("#dupEntry");if(de)de.style.display="none";
   $("#addScrim").classList.add("open");
 }
 function openEdit(id){
+  if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
   $("#editId").value=id;$("#addTitle").textContent="Edit Entry";
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
+  const de=$("#dupEntry");if(de)de.style.display="";
   $("#addScrim").classList.add("open");
 }
 async function saveEntry(){
+  if(state.locked)return;
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
@@ -1178,7 +1220,7 @@ async function saveEntry(){
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
   await backend.upsertTask(task);
-  $("#addScrim").classList.remove("open");refreshUI();toast(id?"Saved":"Entry added");
+  $("#addScrim").classList.remove("open");refreshUI();touchActivity();toast(id?"Saved":"Entry added");
 }
 
 /* ============ clients manager ============ */
@@ -1271,6 +1313,15 @@ function settingsHTML(){
           <span class="set-hint">Export saves a spreadsheet backup of active projects; import adds or updates from one.</span>
         </div>
       </div>
+      <div class="card set-card set-wide">
+        <div class="card-h">Security · edit password</div>
+        <div class="set-add">
+          <input class="inp" id="secPw" type="password" placeholder="${SEC_HASH?"New password":"Set a password"}" autocomplete="new-password" style="flex:1 1 180px">
+          <button class="btn primary" id="secSet">${SEC_HASH?"Change password":"Enable view-only"}</button>
+          ${SEC_HASH?`<button class="btn" id="secRemove">Remove password</button>`:""}
+          <span class="set-hint">${SEC_HASH?"Editing is gated: visitors can view, but the password is required to make changes — and again after 24 hours of inactivity.":"No password set — anyone with the link can edit. Set one to make the site view-only until unlocked."}</span>
+        </div>
+      </div>
   </div>`;
 }
 async function addEditor(){
@@ -1314,6 +1365,7 @@ function exportCSV(){
   toast(`Exported ${rows.length} active project${rows.length===1?"":"s"}`);
 }
 async function importCSV(file){
+  if(state.locked){toast("Unlock editing first");return;}
   if(!file)return;
   let text; try{text=await file.text();}catch(e){toast("Couldn't read file");return;}
   const rows=parseCSV(text); if(rows.length<2){toast("Nothing to import");return;}
@@ -1352,6 +1404,9 @@ function bindSettings(scope){
   $("#typAdd").onclick=addType;$("#typLabel").onkeydown=e=>{if(e.key==="Enter")addType();};
   const ex=$("#exportCsv");if(ex)ex.onclick=exportCSV;
   const im=$("#importCsv");if(im)im.onchange=e=>{importCSV(e.target.files[0]);e.target.value="";};
+  const ssb=$("#secSet");if(ssb)ssb.onclick=setPassword;
+  const srb=$("#secRemove");if(srb)srb.onclick=removePassword;
+  const spw=$("#secPw");if(spw)spw.onkeydown=e=>{if(e.key==="Enter")setPassword();};
   scope.querySelectorAll(".set-row[data-ed]").forEach(r=>{const nm=r.dataset.ed;
     r.querySelector('[data-act="edcolor"]').onchange=async e=>{const ed=EDITORS_LIST.find(x=>x.name===nm);if(ed){ed.color=e.target.value;await backend.saveEditors();afterConfigChange();}};
     r.querySelector('[data-act="edrm"]').onclick=async ()=>{if(!confirm(`Remove editor ${nm}?`))return;EDITORS_LIST=EDITORS_LIST.filter(x=>x.name!==nm);await backend.saveEditors();afterConfigChange();toast("Editor removed");};
@@ -1369,6 +1424,40 @@ function bindSettings(scope){
   });
 }
 
+const ICON_LOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+const ICON_UNLOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.5"/></svg>`;
+function refreshLock(){
+  if(!SEC_HASH){state.locked=false;}
+  else{const last=parseInt(LS.get(LK_UNLOCK,"0"),10)||0;state.locked=!((Date.now()-last)<86400000);}
+  applyLockUI();
+  if(state.locked && !lockPrompted){lockPrompted=true;openUnlock();}
+}
+function applyLockUI(){
+  document.body.classList.toggle("locked",state.locked);
+  const fab=$("#openAdd");if(fab)fab.style.display=state.locked?"none":"";
+  const sNav=document.querySelector('[data-view="settings"]');if(sNav)sNav.classList.toggle("navlocked",state.locked);
+  const lb=$("#lockBtn");if(lb){lb.style.display=SEC_HASH?"":"none";lb.innerHTML=state.locked?ICON_LOCK:ICON_UNLOCK;lb.title=state.locked?"View only — tap to unlock editing":"Editing unlocked — tap to lock";}
+  if(state.locked && state.view==="settings"){state.view="list";document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view==="list"));render();}
+}
+function openUnlock(){const sc=$("#lockScrim");if(!sc)return;const p=$("#lockPw");if(p)p.value="";const er=$("#lockErr");if(er)er.textContent="";sc.classList.add("open");setTimeout(()=>{const f=$("#lockPw");if(f)f.focus();},60);}
+function doUnlock(){
+  const pw=$("#lockPw").value;
+  if(!pw){$("#lockErr").textContent="Enter the password.";return;}
+  if(SEC_HASH&&hashPw(pw)===SEC_HASH){state.locked=false;LS.set(LK_UNLOCK,String(Date.now()));$("#lockScrim").classList.remove("open");applyLockUI();render();toast("Editing unlocked");}
+  else{$("#lockErr").textContent="Incorrect password.";}
+}
+function lockNow(){if(!SEC_HASH){openUnlock();return;}state.locked=true;LS.set(LK_UNLOCK,"0");applyLockUI();render();toast("Locked — view only");}
+function touchActivity(){if(!state.locked&&SEC_HASH)LS.set(LK_UNLOCK,String(Date.now()));}
+async function setPassword(){
+  const pw=$("#secPw").value.trim();
+  if(pw.length<4){toast("Use at least 4 characters");return;}
+  SEC_HASH=hashPw(pw);await backend.saveSecurity();
+  LS.set(LK_UNLOCK,String(Date.now()));state.locked=false;refreshLock();afterConfigChange();toast("Edit password set");
+}
+async function removePassword(){
+  if(!confirm("Remove the edit password? Anyone with the link will be able to edit."))return;
+  SEC_HASH=null;await backend.saveSecurity();state.locked=false;LS.set(LK_UNLOCK,"0");refreshLock();afterConfigChange();toast("Password removed");
+}
 function setView(v){state.view=v;document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
 function onStatClick(kind){
   if(kind==="dailies"){state.quick=null;state.tab="daily";buildTabs();setView("list");}
@@ -1378,6 +1467,9 @@ function onStatClick(kind){
 }
 function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
+  $("#dupEntry").onclick=()=>{const id=$("#editId").value;if(!id)return;$("#addScrim").classList.remove("open");dupTask(id);};
+  $("#lockBtn").onclick=lockNow;$("#lockGo").onclick=doUnlock;$("#lockCancel").onclick=()=>$("#lockScrim").classList.remove("open");
+  $("#lockPw").onkeydown=e=>{if(e.key==="Enter")doUnlock();};
   $("#catFilter").onchange=e=>{state.cat=e.target.value;render();};
   $("#asgFilter").onchange=e=>{state.assignee=e.target.value;render();};
   $("#sortBy").onchange=e=>{state.sort=e.target.value;render();};
