@@ -432,6 +432,49 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .dchip{width:24px;height:24px;border-radius:7px;border:1px solid var(--line-2);background:var(--paper);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;padding:0}
 .dchip.on{background:var(--sage);border-color:var(--sage);color:#10201d}
 .dchip:hover{border-color:var(--sage)}
+.jarvis-orb{position:fixed;left:24px;bottom:26px;z-index:55;width:54px;height:54px;border:none;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 50% 45%, #cfe8e3 0%, #8fc7be 40%, #4f8f86 100%);box-shadow:0 6px 22px rgba(40,90,82,.45), 0 0 0 1px rgba(255,255,255,.3) inset;display:grid;place-items:center;transition:transform .16s ease, box-shadow .16s ease}
+.jarvis-orb:hover{transform:scale(1.07);box-shadow:0 10px 30px rgba(40,90,82,.55)}
+.jarvis-orb .orb-core{width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 12px 3px rgba(255,255,255,.9), 0 0 22px 6px rgba(143,199,190,.8);animation:orbpulse 2.6s ease-in-out infinite}
+.jarvis-orb .orb-ring{position:absolute;inset:8px;border-radius:50%;border:2px solid rgba(255,255,255,.55);animation:orbspin 7s linear infinite}
+.jarvis-orb .orb-ring.r2{inset:4px;border-style:dashed;border-color:rgba(255,255,255,.35);animation-duration:11s;animation-direction:reverse}
+.jarvis-orb.listening{box-shadow:0 0 0 4px rgba(143,199,190,.45), 0 10px 30px rgba(40,90,82,.6)}
+.jarvis-orb.listening .orb-core{animation:orbpulse .8s ease-in-out infinite;background:#eafff9}
+.jarvis-orb.thinking .orb-ring{animation-duration:1.4s}
+@keyframes orbpulse{0%,100%{transform:scale(.9);opacity:.85}50%{transform:scale(1.15);opacity:1}}
+@keyframes orbspin{to{transform:rotate(360deg)}}
+.jarvis-panel{position:fixed;left:24px;bottom:92px;z-index:56;width:370px;max-width:calc(100vw - 32px);max-height:min(68vh,560px);display:flex;flex-direction:column;background:rgba(18,28,26,.96);backdrop-filter:blur(10px);border:1px solid rgba(143,199,190,.35);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#dfeae7;opacity:0;transform:translateY(12px) scale(.98);transition:opacity .18s ease, transform .18s ease;overflow:hidden}
+.jarvis-panel.open{opacity:1;transform:none}
+.jp-head{display:flex;align-items:center;gap:9px;padding:13px 14px;border-bottom:1px solid rgba(143,199,190,.18)}
+.jp-dot{width:9px;height:9px;border-radius:50%;background:#8fc7be;box-shadow:0 0 10px 2px rgba(143,199,190,.9);flex:0 0 auto}
+.jp-title{font-family:"Outfit";font-weight:700;letter-spacing:.18em;font-size:13px;color:#fff}
+.jp-sub{font-size:11px;color:#8fc7be;margin-left:2px}
+.jp-mode{font-size:10px;color:#6f8a85;margin-left:auto}
+.jp-x{background:none;border:none;color:#9fb4b0;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;margin-left:8px}
+.jp-x:hover{color:#fff}
+.jp-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:120px}
+.jl{display:flex;flex-direction:column;gap:2px;max-width:92%}
+.jl.you{align-self:flex-end;align-items:flex-end}
+.jl-who{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6f8a85}
+.jl-txt{font-size:13.5px;line-height:1.45;padding:8px 11px;border-radius:11px;background:rgba(143,199,190,.12);color:#e7f1ee}
+.jl.you .jl-txt{background:rgba(255,255,255,.1);color:#fff}
+.jp-input{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(143,199,190,.18)}
+.jp-input input{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid rgba(143,199,190,.25);border-radius:10px;color:#fff;padding:9px 11px;font-size:13.5px;font-family:"DM Sans"}
+.jp-input input::placeholder{color:#7f948f}
+.jp-input input:focus{outline:none;border-color:#8fc7be}
+.jp-mic,.jp-send{flex:0 0 auto;width:38px;height:38px;border-radius:10px;border:1px solid rgba(143,199,190,.25);background:rgba(255,255,255,.06);color:#cfe2de;cursor:pointer;display:grid;place-items:center}
+.jp-mic svg,.jp-send svg{width:18px;height:18px}
+.jp-mic:hover,.jp-send:hover{border-color:#8fc7be;color:#fff}
+.jp-send{background:#5f9a8f;border-color:#5f9a8f;color:#0e1c19}
+.jp-mic.on{background:#8fc7be;color:#0e1c19;border-color:#8fc7be;animation:orbpulse 1s ease-in-out infinite}
+.jp-foot{padding:8px 14px 12px;display:flex;align-items:center}
+.jp-voice{display:flex;align-items:center;gap:7px;font-size:12px;color:#9fb4b0;cursor:pointer}
+.jp-voice input{width:14px;height:14px;cursor:pointer}
+@media(max-width:640px){.jarvis-orb{left:16px;bottom:84px;width:48px;height:48px}.jarvis-panel{left:16px;bottom:142px}}
+.jarvis-orb.badge::after{content:"";position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;background:#c8893c;border:2px solid #fff;box-shadow:0 0 8px rgba(200,137,60,.8)}
+.jl-btn{align-self:flex-start;margin-top:-2px;background:#5f9a8f;color:#0e1c19;border:none;border-radius:9px;padding:8px 13px;font-weight:700;font-size:12.5px;font-family:"Outfit";cursor:pointer}
+.jl-btn:hover{background:#6fb0a4}
+.cchip-ready{flex:0 0 auto;color:#e0a23c;font-size:11px;line-height:1;text-shadow:0 0 2px rgba(224,162,60,.4)}
+.cchip.done .cchip-ready{opacity:.5}
 </style>
 
 <div class="topbar">
@@ -529,6 +572,18 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
     </div>
     <div class="mf"><button class="btn" id="dupEntry" type="button" style="display:none">Duplicate</button><span style="flex:1"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveEntry">Save Entry</button></div>
   </div>
+</div>
+
+<button class="jarvis-orb" id="jarvisOrb" aria-label="Open assistant" title="Ask Jarvis"><span class="orb-core"></span><span class="orb-ring"></span><span class="orb-ring r2"></span></button>
+<div class="jarvis-panel" id="jarvisPanel" hidden>
+  <div class="jp-head"><span class="jp-dot"></span><div class="jp-title">JARVIS</div><div class="jp-sub" id="jpStatus">Standing by</div><span class="jp-mode" id="jpMode"></span><button class="jp-x" id="jarvisClose" aria-label="Close">&times;</button></div>
+  <div class="jp-log" id="jarvisLog"></div>
+  <div class="jp-input">
+    <button class="jp-mic" id="jarvisMic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <input type="text" id="jarvisInput" placeholder="Ask Jarvis — e.g. what's due today?" autocomplete="off">
+    <button class="jp-send" id="jarvisSend" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+  </div>
+  <div class="jp-foot"><label class="jp-voice"><input type="checkbox" id="jarvisVoice" checked> Voice replies</label></div>
 </div>
 
 <div class="scrim" id="lockScrim">
@@ -671,13 +726,15 @@ const backend={
   async saveTypes(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","types"),{list:TYPES});else LS.set(LK_TYP,TYPES);},
   async saveSecurity(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","security"),{list:SEC_HASH?[SEC_HASH]:[]});else LS.set(LK_SEC,SEC_HASH||"");},
   async saveSchedule(){const arr=Object.keys(SCHEDULE).filter(a=>SCHEDULE[a]&&SCHEDULE[a].length).map(a=>({abbr:a,days:SCHEDULE[a]}));if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","schedule"),{list:arr});else LS.set(LK_SCHED,arr);},
+  async saveReport(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","report"),{list:REPORT_RECIP});else LS.set(LK_REPORT,REPORT_RECIP);},
+  async saveJarvis(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","jarvis"),{list:JARVIS_ENDPOINT?[JARVIS_ENDPOINT]:[]});else LS.set(LK_JARVIS,JARVIS_ENDPOINT||"");},
 };
 
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
 let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
-const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", SALT="acc::";
-let SCHEDULE={};
+const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", SALT="acc::";
+let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
 let SEC_HASH=null, lockPrompted=false;
 function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);}
 
@@ -704,6 +761,8 @@ function initLocal(){
   state.clients=cl; state.tasks=tk;
   SEC_HASH=LS.get(LK_SEC,"")||null;
   SCHEDULE=Object.fromEntries((LS.get(LK_SCHED,[])||[]).map(e=>[e.abbr,e.days||[]]));
+  REPORT_RECIP=LS.get(LK_REPORT,[])||[];
+  JARVIS_ENDPOINT=LS.get(LK_JARVIS,"")||"";
   rebuildConfigUI(); ensureDailyDue(); setSyncStatus("local"); refreshUI(); rollDailies(); refreshLock();
 }
 async function initFirebase(){
@@ -720,8 +779,8 @@ async function initFirebase(){
     const seeds={editors:EDITORS_LIST,categories:CATEGORIES,types:TYPES};
     for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
     onSnapshot(collection(db,"config"),s=>{
-      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));});
-      rebuildConfigUI();ensureDailyDue();setSyncStatus("ok");refreshUI();refreshLock();
+      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";});
+      rebuildConfigUI();ensureDailyDue();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
     onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();rollDailies();},()=>setSyncStatus("err"));
@@ -872,7 +931,8 @@ function calChip(t){
   if(isDeliv){colorCls="ctype delivered";style=`style="background:linear-gradient(90deg, ${hexToRgba(typeColor(t.type),.28)} 0 50%, var(--canvas) 50% 100%);border-left:3px solid ${typeColor(t.type)}"`;}
   else{colorCls=byUrg?urgClass(t):"ctype";style=byUrg?"":`style="background:${hexToRgba(typeColor(t.type),.16)};border-left:3px solid ${typeColor(t.type)}"`;}
   const drag=(!t.completed&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)?'draggable="true"':"";
-  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${t.completed?"done":""}" ${style} ${drag} data-id="${t.id}" title="${esc(label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span><span class="cchip-lbl">${esc(label)}</span></span>`;
+  const ready=t.footageUrl&&String(t.footageUrl).trim()?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
+  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${t.completed?"done":""}" ${style} ${drag} data-id="${t.id}" title="${esc((t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${ready}<span class="cchip-lbl">${esc(label)}</span></span>`;
 }
 function calHeader(title){
   return `<div class="cal-head">
@@ -1390,6 +1450,23 @@ function settingsHTML(){
           <span class="set-hint">${SEC_HASH?"Editing is gated: visitors can view, but the password is required to make changes — and again after 24 hours of inactivity.":"No password set — anyone with the link can edit. Set one to make the site view-only until unlocked."}</span>
         </div>
       </div>
+      <div class="card set-card set-wide">
+        <div class="card-h">Weekly standup report</div>
+        <div class="set-add">
+          <input class="inp" id="repTo" type="email" placeholder="To — Tyler\u2019s email" value="${esc(REPORT_RECIP[0]||"")}" style="flex:1 1 200px">
+          <input class="inp" id="repCc" type="email" placeholder="CC — your email" value="${esc(REPORT_RECIP[1]||"")}" style="flex:1 1 200px">
+          <button class="btn primary" id="repSave">Save recipients</button>
+          <span class="set-hint">At the start of each week Jarvis prepares a standup report and opens a pre-filled email to these recipients (full report is also copied to your clipboard). Fully hands-off auto-send needs a small server add-on.</span>
+        </div>
+      </div>
+      <div class="card set-card set-wide">
+        <div class="card-h">Jarvis AI &amp; auto-email (optional)</div>
+        <div class="set-add">
+          <input class="inp" id="jarUrl" type="url" placeholder="https://your-worker.workers.dev" value="${esc(JARVIS_ENDPOINT||"")}" style="flex:1 1 280px">
+          <button class="btn primary" id="jarSave">Save endpoint</button>
+          <span class="set-hint">Paste your Cloudflare Worker URL to switch Jarvis to the full Claude AI brain and enable the automatic Monday 9 AM report email. Leave blank to use the built-in offline brain.</span>
+        </div>
+      </div>
   </div>`;
 }
 async function addEditor(){
@@ -1474,6 +1551,8 @@ function bindSettings(scope){
   const im=$("#importCsv");if(im)im.onchange=e=>{importCSV(e.target.files[0]);e.target.value="";};
   const ssb=$("#secSet");if(ssb)ssb.onclick=setPassword;
   const srb=$("#secRemove");if(srb)srb.onclick=removePassword;
+  const rsb=$("#repSave");if(rsb)rsb.onclick=setReportRecip;
+  const jsb=$("#jarSave");if(jsb)jsb.onclick=setJarvisEndpoint;
   const spw=$("#secPw");if(spw)spw.onkeydown=e=>{if(e.key==="Enter")setPassword();};
   scope.querySelectorAll(".set-row[data-ed]").forEach(r=>{const nm=r.dataset.ed;
     r.querySelector('[data-act="edcolor"]').onchange=async e=>{const ed=EDITORS_LIST.find(x=>x.name===nm);if(ed){ed.color=e.target.value;await backend.saveEditors();afterConfigChange();}};
@@ -1522,6 +1601,13 @@ async function setPassword(){
   SEC_HASH=hashPw(pw);await backend.saveSecurity();
   LS.set(LK_UNLOCK,String(Date.now()));state.locked=false;refreshLock();afterConfigChange();toast("Edit password set");
 }
+async function setJarvisEndpoint(){
+  const u=$("#jarUrl").value.trim().replace(/\/+$/,"");JARVIS_ENDPOINT=u;await backend.saveJarvis();toast(u?"Jarvis AI endpoint saved":"Endpoint cleared");
+}
+async function setReportRecip(){
+  const to=$("#repTo").value.trim(),cc=$("#repCc").value.trim();
+  REPORT_RECIP=[to,cc];await backend.saveReport();toast("Report recipients saved");
+}
 async function removePassword(){
   if(!confirm("Remove the edit password? Anyone with the link will be able to edit."))return;
   SEC_HASH=null;await backend.saveSecurity();state.locked=false;LS.set(LK_UNLOCK,"0");refreshLock();afterConfigChange();toast("Password removed");
@@ -1552,5 +1638,230 @@ function wireUp(){
 }
 
 init();
+
+
+/* ============ JARVIS — voice + commands + personality ============ */
+const J={listening:false,reco:null,voiceOn:true,voice:null,thinking:false,greeted:false};
+
+function jStatus(s){const e=$("#jpStatus");if(e)e.textContent=s;}
+function jMode(m){const e=$("#jpMode");if(e)e.textContent=m;}
+function jLog(who,text){
+  const log=$("#jarvisLog");if(!log)return;
+  const d=document.createElement("div");d.className="jl "+who;
+  d.innerHTML=`<span class="jl-who">${who==="you"?"You":"JARVIS"}</span><span class="jl-txt"></span>`;
+  d.querySelector(".jl-txt").textContent=text;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+function jGreet(){const h=new Date().getHours();return h<12?"Good morning.":h<18?"Good afternoon.":"Good evening.";}
+
+/* ---- voice out ---- */
+function jVoices(){return ("speechSynthesis"in window)?(speechSynthesis.getVoices()||[]):[];}
+function jLoadVoice(){const vs=jVoices();if(!vs.length)return;J.voice=vs.find(v=>/google uk english male/i.test(v.name))||vs.find(v=>/en-GB/i.test(v.lang)&&/male/i.test(v.name))||vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||vs[0]||null;}
+function jSpeak(text){
+  if(!J.voiceOn||!("speechSynthesis"in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);if(J.voice)u.voice=J.voice;u.rate=.98;u.pitch=.92;speechSynthesis.speak(u);}catch(e){}
+}
+
+/* ---- voice in ---- */
+function jListen(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Voice input isn't supported in this browser");return;}
+  if(J.listening){try{J.reco&&J.reco.stop();}catch(e){}return;}
+  const r=new SR();J.reco=r;r.lang="en-US";r.interimResults=false;r.maxAlternatives=1;
+  r.onstart=()=>{J.listening=true;$("#jarvisMic").classList.add("on");$("#jarvisOrb").classList.add("listening");jStatus("Listening…");};
+  r.onend=()=>{J.listening=false;$("#jarvisMic").classList.remove("on");$("#jarvisOrb").classList.remove("listening");if(!J.thinking)jStatus("Standing by");};
+  r.onerror=()=>{};
+  r.onresult=e=>{const t=e.results[0][0].transcript;$("#jarvisInput").value=t;submitJarvis();};
+  try{r.start();}catch(e){}
+}
+
+/* ---- context for the AI layer ---- */
+function jContext(){
+  const active=state.tasks.filter(t=>!t.completed);
+  return {
+    today:todayStr(),
+    counts:{active:active.length,dueToday:active.filter(t=>t.dueDate===todayStr()).length},
+    clients:state.clients.map(c=>({abbr:c.abbr,name:c.name,cat:c.cat})),
+    tasks:active.slice(0,150).map(t=>({id:t.id,client:t.clientAbbr,type:t.type,name:t.projectName||"",due:t.dueDate||null,delivered:!!t.delivered}))
+  };
+}
+
+/* ---- AI understanding (works when an endpoint is reachable; falls back otherwise) ---- */
+async function apiJarvis(text){
+  const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),12000);
+  const sys=`You are JARVIS, a calm, dry, lightly witty British AI butler running a video post-production & social-media pipeline app for Anomaly Creative & Co. Keep replies to 1-2 sentences, in character; address the user as "sir" occasionally. Answer questions and optionally return ONE action. Reply with ONLY minified JSON: {"say":string,"action":null|{"type":"navigate","view":"list|calendar|dashboard|settings"}|{"type":"filter","quick":"overdue|due7|completed|dailies|active"}|{"type":"stage","id":string,"to":"posted|delivered|reopen"}|{"type":"addPrefill","client":string,"date":"YYYY-MM-DD or null","kind":"daily|longform|clips|batch|listings"}}. Use real ids and client abbreviations from CONTEXT. Today is ${todayStr()}.`;
+  const body={model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:`CONTEXT:\n${JSON.stringify(jContext())}\n\nUSER: ${text}`}]};
+  const useWorker=(typeof JARVIS_ENDPOINT!=="undefined"&&JARVIS_ENDPOINT);
+  const endpoint=useWorker?(JARVIS_ENDPOINT.replace(/\/+$/,"")+"/ai"):"https://api.anthropic.com/v1/messages";
+  const headers=useWorker?{"Content-Type":"application/json"}:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
+  const resp=await fetch(endpoint,{method:"POST",headers,body:JSON.stringify(body),signal:ctrl.signal});
+  clearTimeout(to);
+  if(!resp.ok)throw new Error("api");
+  const data=await resp.json();
+  let txt=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+  txt=txt.replace(/^```json/i,"").replace(/^```/,"").replace(/```$/,"").trim();
+  const j=JSON.parse(txt);
+  jMode("· AI");
+  return j;
+}
+async function askJarvis(text){
+  try{const r=await apiJarvis(text);if(r&&r.say)return r;}catch(e){}
+  jMode("· local");
+  return jBrain(text);
+}
+
+/* ---- offline command engine ---- */
+function jFindClient(text){
+  const lc=text.toLowerCase();let best=null;
+  state.clients.forEach(c=>{if(new RegExp("\\b"+c.abbr.toLowerCase()+"\\b").test(lc))best=c;});
+  if(best)return best;
+  state.clients.forEach(c=>{if(c.name&&lc.includes(c.name.toLowerCase())){if(!best||c.name.length>best.name.length)best=c;}});
+  return best;
+}
+function jFindTasks(text){
+  const lc=text.toLowerCase();const c=jFindClient(text);
+  let pool=state.tasks.filter(t=>!t.completed);
+  if(c)pool=pool.filter(t=>t.clientAbbr===c.abbr);
+  const narrowed=pool.filter(t=>t.projectName&&t.projectName.toLowerCase().split(/\W+/).some(w=>w.length>3&&lc.includes(w)));
+  return narrowed.length?narrowed:pool;
+}
+function jParseDay(lc){
+  if(/\btoday\b/.test(lc))return todayStr();
+  if(/\btomorrow\b/.test(lc)){const d=new Date();d.setDate(d.getDate()+1);return ymd(d);}
+  const days=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+  for(let i=0;i<7;i++){if(new RegExp("\\b"+days[i]+"\\b").test(lc)||new RegExp("\\b"+days[i].slice(0,3)+"\\b").test(lc)){const now=new Date();let add=(i-now.getDay()+7)%7;if(add===0)add=7;const d=new Date();d.setDate(now.getDate()+add);return ymd(d);}}
+  return null;
+}
+function jNiceDate(ds){try{return new Date(ds+"T00:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});}catch(e){return ds;}}
+function jLabel(t){return `${t.clientAbbr} · ${t.projectName||(TYPE_MAP[t.type]&&TYPE_MAP[t.type].label)||t.type}`;}
+
+function jBrain(text){
+  const lc=text.toLowerCase().trim();const today=todayStr();
+  const active=state.tasks.filter(t=>!t.completed);
+  const dueToday=active.filter(t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate===today);
+  const overdue=active.filter(t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate&&t.dueDate<today);
+  const dailiesToday=dueToday.filter(t=>t.type==="daily");
+
+  if(/^(hi|hey|hello|yo|jarvis)\b/.test(lc)&&lc.length<16) return {say:`${jGreet()} How may I help with the pipeline, sir?`};
+  if(/\breport\b|stand.?up/.test(lc)){
+    if(!REPORT_RECIP||!REPORT_RECIP[0]) return {say:"I would be glad to, but no report recipients are set. Add them in Settings, under Weekly standup report."};
+    return {say:"Preparing the standup report and opening an email to "+REPORT_RECIP[0]+(REPORT_RECIP[1]?", cc "+REPORT_RECIP[1]:"")+". The full report is also on your clipboard.",action:{type:"report"}};
+  }
+  if(/help|what can you|commands|how do you work/.test(lc)) return {say:"Ask me for a briefing, what's due today, or what's overdue; tell me to open the calendar or dashboard; mark an item delivered or posted; or add a new piece for a client."};
+  if(/brief|status|sitrep|report|rundown|overview|how are we|where do we stand/.test(lc))
+    return {say:`${jGreet()} ${active.length} item${active.length===1?"":"s"} in the pipeline — ${dueToday.length} due today, ${overdue.length} overdue${overdue.length?", which I'd see to first":""}. ${dailiesToday.length} dail${dailiesToday.length===1?"y":"ies"} on today's slate.`,action:{type:"navigate",view:"dashboard"}};
+
+  let mv=lc.match(/\b(calendar|dashboard|list|settings)\b/);
+  if(/(open|show|go to|bring up|pull up|take me to|switch to|display)/.test(lc)&&mv) return {say:`Opening the ${mv[1]}.`,action:{type:"navigate",view:mv[1]}};
+  if(/overdue|behind|late|past due/.test(lc)) return {say:overdue.length?`${overdue.length} item${overdue.length===1?" is":"s are"} overdue. Bringing them up.`:"Nothing overdue — impeccable timing, sir.",action:overdue.length?{type:"filter",quick:"overdue"}:null};
+  if(/due today|today.?s (tasks|posts|slate|list|items)|what.?s (due )?today|on (the )?slate|on today/.test(lc)) return {say:`${dueToday.length} due today. Here's the calendar.`,action:{type:"navigate",view:"calendar"}};
+  if(/this week|next 7|next seven|coming up|upcoming|due (this )?week/.test(lc)) return {say:"Here's what's due within seven days.",action:{type:"filter",quick:"due7"}};
+  if(/how many dail|dailies (left|today|remaining)/.test(lc)) return {say:`${dailiesToday.length} dail${dailiesToday.length===1?"y":"ies"} due today, sir.`};
+
+  if(/\bmark\b|\bset\b|\bflag\b|posted|delivered|reopen|mark.*done/.test(lc)){
+    const to=/reopen|undo|not done|back to production/.test(lc)?"reopen":/deliver/.test(lc)?"delivered":/posted|post it|live|published|done|complete|finish/.test(lc)?"posted":null;
+    const tasks=jFindTasks(text);
+    if(!tasks.length) return {say:"I couldn't find a matching item in the pipeline, sir."};
+    if(tasks.length>1) return {say:`I found ${tasks.length} possible matches — could you name the project specifically?`};
+    const stage=to||"posted";
+    return {say:`${stage==="reopen"?"Reopening":"Marking"} ${jLabel(tasks[0])}${stage==="reopen"?"":" as "+stage}.`,action:{type:"stage",id:tasks[0].id,to:stage}};
+  }
+  if(/\b(add|create|new|schedule|set up|draft)\b/.test(lc)){
+    const c=jFindClient(text);
+    const kind=/long.?form/.test(lc)?"longform":/clip/.test(lc)?"clips":/batch/.test(lc)?"batch":/listing/.test(lc)?"listings":"daily";
+    const date=jParseDay(lc);
+    if(!c) return {say:"Which client is this for, sir?"};
+    return {say:`Opening a new ${(TYPE_MAP[kind]&&TYPE_MAP[kind].label)||kind} for ${c.name}${date?" on "+jNiceDate(date):""}.`,action:{type:"addPrefill",client:c.abbr,date,kind}};
+  }
+  return {say:"I'm afraid I didn't catch that. Try “briefing”, “what's overdue”, “mark COLE posted”, or “open the calendar”."};
+}
+
+/* ---- execute actions ---- */
+async function jApplyStage(t,to){
+  const patch=to==="posted"?{completed:true,completedAt:Date.now()}:to==="delivered"?{delivered:true}:{completed:false,completedAt:null,delivered:false};
+  await backend.upsertTask({...t,...patch});refreshUI();
+}
+function jReport(){
+  const today=new Date(),tds=todayStr();
+  const active=state.tasks.filter(t=>!t.completed);
+  const overdue=active.filter(t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate&&t.dueDate<tds).sort((a,b)=>a.dueDate<b.dueDate?-1:1);
+  const awaiting=active.filter(t=>t.delivered&&(t.type==="daily"||t.type==="longform"));
+  const dowi=(today.getDay()+6)%7,mon=new Date(today.getFullYear(),today.getMonth(),today.getDate()-dowi);
+  const lab=t=>`${t.clientAbbr} \u00b7 ${t.projectName||(TYPE_MAP[t.type]&&TYPE_MAP[t.type].label)||t.type}`;
+  const L=[];
+  L.push("ANOMALY \u2014 WEEKLY STANDUP REPORT");
+  L.push("Week of "+mon.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}));
+  L.push("");
+  L.push(`Snapshot: ${active.length} active \u00b7 ${overdue.length} overdue \u00b7 ${awaiting.length} delivered, awaiting posting`);
+  L.push("");
+  if(overdue.length){L.push(`OVERDUE (${overdue.length}):`);overdue.forEach(t=>L.push(`  - ${lab(t)} (due ${t.dueDate})`));L.push("");}
+  if(awaiting.length){L.push(`DELIVERED, NOT YET POSTED (${awaiting.length}):`);awaiting.forEach(t=>L.push(`  - ${lab(t)}`));L.push("");}
+  L.push("DUE THIS WEEK:");
+  const dn=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];let any=false;
+  for(let i=0;i<7;i++){const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i),ds=ymd(d);const items=active.filter(t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate===ds);if(items.length){any=true;L.push(`  ${dn[i]} ${d.getDate()}:`);items.forEach(t=>L.push(`    - ${lab(t)} [${(TYPE_MAP[t.type]&&TYPE_MAP[t.type].label)||t.type}]`));}}
+  if(!any)L.push("  (nothing dated this week yet)");
+  L.push("");
+  L.push("Prepared by JARVIS for the 9:00 AM standup.");
+  return L.join("\n");
+}
+function jEmailReport(){
+  const to=(REPORT_RECIP[0]||"").trim(),cc=(REPORT_RECIP[1]||"").trim();
+  const body=jReport();
+  const subj="Anomaly \u2014 Weekly Standup Report ("+new Date().toLocaleDateString()+")";
+  try{navigator.clipboard&&navigator.clipboard.writeText(body);}catch(e){}
+  if(!to)return false;
+  let b=body,url="mailto:"+encodeURIComponent(to)+"?cc="+encodeURIComponent(cc)+"&subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(b);
+  if(url.length>1800){b=body.split("\n").slice(0,46).join("\n")+"\n\n(Full report copied to your clipboard \u2014 paste to include everything.)";url="mailto:"+encodeURIComponent(to)+"?cc="+encodeURIComponent(cc)+"&subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(b);}
+  window.location.href=url;return true;
+}
+function jWeekKey(){const d=new Date(),dow=(d.getDay()+6)%7,mon=new Date(d.getFullYear(),d.getMonth(),d.getDate()-dow);return ymd(mon);}
+function jLogButton(label,fn){const log=$("#jarvisLog");if(!log)return;const b=document.createElement("button");b.className="jl-btn";b.textContent=label;b.onclick=fn;log.appendChild(b);log.scrollTop=log.scrollHeight;}
+function jMaybeWeekly(){
+  if(!REPORT_RECIP||!REPORT_RECIP[0])return;
+  const wk=jWeekKey();if(LS.get("acc_report_week","")===wk)return;
+  LS.set("acc_report_week",wk);J.weekly=true;
+  const orb=$("#jarvisOrb");if(orb)orb.classList.add("badge");
+  toast("Weekly standup report ready \u2014 open Jarvis to send");
+}
+function jarvisDo(a){
+  if(a.type==="navigate"){setView(a.view);state.quick=null;render();}
+  else if(a.type==="filter"){onStatClick(a.quick);}
+  else if(a.type==="stage"){const t=state.tasks.find(x=>x.id===a.id);if(t)jApplyStage(t,a.to);}
+  else if(a.type==="addPrefill"){setView("list");render();openAdd(a.date||undefined,a.client);}
+  else if(a.type==="report"){jEmailReport();}
+}
+
+/* ---- submit / panel ---- */
+async function submitJarvis(){
+  const inp=$("#jarvisInput");const text=(inp.value||"").trim();if(!text)return;
+  inp.value="";jLog("you",text);J.thinking=true;jStatus("Thinking…");$("#jarvisOrb").classList.add("thinking");
+  let res;try{res=await askJarvis(text);}catch(e){res={say:"Apologies — something went amiss processing that."};}
+  J.thinking=false;$("#jarvisOrb").classList.remove("thinking");jStatus("Standing by");
+  if(res.action&&(res.action.type==="stage"||res.action.type==="addPrefill")&&state.locked)
+    res={say:"The pipeline is locked for editing. Unlock it and I'll see to it at once."};
+  jLog("jarvis",res.say);jSpeak(res.say);
+  if(res.action){try{jarvisDo(res.action);}catch(e){}}
+}
+function openJarvis(){
+  const p=$("#jarvisPanel");p.hidden=false;requestAnimationFrame(()=>p.classList.add("open"));
+  setTimeout(()=>{const i=$("#jarvisInput");if(i)i.focus();},120);
+  if(!J.greeted){J.greeted=true;const b=jBrain("briefing");jLog("jarvis",b.say);jSpeak(b.say);}
+  if(J.weekly){J.weekly=false;const orb=$("#jarvisOrb");if(orb)orb.classList.remove("badge");jLog("jarvis","It is the start of a new week — your standup report is ready for the 9 AM.");jLogButton("Email standup report",()=>jEmailReport());}
+}
+function closeJarvis(){const p=$("#jarvisPanel");p.classList.remove("open");setTimeout(()=>{p.hidden=true;},200);if("speechSynthesis"in window)speechSynthesis.cancel();}
+function toggleJarvis(){const p=$("#jarvisPanel");if(p.classList.contains("open"))closeJarvis();else openJarvis();}
+
+function initJarvis(){
+  if("speechSynthesis"in window){jLoadVoice();speechSynthesis.onvoiceschanged=jLoadVoice;}
+  const orb=$("#jarvisOrb");if(!orb)return;
+  orb.onclick=toggleJarvis;
+  $("#jarvisClose").onclick=closeJarvis;
+  $("#jarvisSend").onclick=submitJarvis;
+  $("#jarvisMic").onclick=jListen;
+  $("#jarvisVoice").onchange=e=>{J.voiceOn=e.target.checked;if(!J.voiceOn&&"speechSynthesis"in window)speechSynthesis.cancel();};
+  $("#jarvisInput").onkeydown=e=>{if(e.key==="Enter")submitJarvis();};
+}
+initJarvis();
+setTimeout(()=>{if(typeof jMaybeWeekly==="function")jMaybeWeekly();},2600);
 
 </script>
