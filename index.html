@@ -588,14 +588,14 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
       <div class="frow"><label>Edit Type</label><div class="typepick" id="typePick"></div></div>
       <div class="frow"><label>Client</label><select class="inp" id="fClient"></select></div>
       <div class="frow"><label>Project Name <span class="opt">— optional</span></label><input type="text" class="inp" id="fName" placeholder="e.g. June Brand Film  ·  Listing — 123 Oak St"></div>
-      <div class="frow"><label>Editor <span class="opt">— optional</span></label><select class="inp" id="fAssignee"></select></div>
-      <div class="frow" id="dueRow"><label>Due Date</label><input type="date" class="inp" id="fDue"><div class="hint">Dailies don't use due dates.</div></div>
+      <div class="frow"><label id="asgLbl">Editor <span class="opt">— optional</span></label><select class="inp" id="fAssignee"></select></div>
+      <div class="frow" id="dueRow"><label id="dueLbl">Due Date</label><input type="date" class="inp" id="fDue"><div class="hint" id="dueHint">Dailies don't use due dates.</div></div>
       <div class="frow" id="deliverRow"><label>Delivery</label><label class="chk"><input type="checkbox" id="fDelivered"> Delivered to Slack — production done, not yet posted</label></div>
       <div class="frow" id="recurRow"><label>Recurring</label><select class="inp" id="fRecur"><option value="none">One-off</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="bimonthly">Every 2 months</option><option value="quarterly">Quarterly</option></select><div class="hint">When completed, the next run is auto-scheduled.</div></div>
-      <div class="frow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"></div>
+      <div class="frow" id="refRow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"></div>
       <div class="f2">
         <div class="frow"><label>Footage Folder <span class="opt">— optional</span></label><input type="url" class="inp" id="fFootage" placeholder="Link to footage"></div>
-        <div class="frow"><label>Audio File <span class="opt">— optional</span></label><input type="url" class="inp" id="fAudio" placeholder="Link to audio"></div>
+        <div class="frow" id="audioRow"><label>Audio File <span class="opt">— optional</span></label><input type="url" class="inp" id="fAudio" placeholder="Link to audio"></div>
       </div>
       <div class="frow"><label>Notes <span class="opt">— optional</span></label><textarea class="inp" id="fNotes" placeholder="Anything the editor should know…"></textarea></div>
     </div>
@@ -1365,7 +1365,17 @@ function buildTypePick(){
   $("#typePick").innerHTML=TYPES.map(t=>`<button class="tp${t.id===curType?" sel":""}" data-tp="${t.id}">${t.label}</button>`).join("");
   $("#typePick").querySelectorAll(".tp").forEach(b=>b.onclick=()=>{curType=b.dataset.tp;buildTypePick();syncDueRow();});
 }
-function syncDueRow(){$("#dueRow").classList.toggle("hidden",!TYPE_MAP[curType].due);const dr=$("#deliverRow");if(dr)dr.classList.toggle("hidden",!(curType==="daily"||curType==="longform"));const rr=$("#recurRow");if(rr)rr.classList.toggle("hidden",curType!=="filming");}
+function syncDueRow(){
+  const film=curType==="filming";
+  $("#dueRow").classList.toggle("hidden",!TYPE_MAP[curType].due);
+  const dr=$("#deliverRow");if(dr)dr.classList.toggle("hidden",!(curType==="daily"||curType==="longform"));
+  const rr=$("#recurRow");if(rr)rr.classList.toggle("hidden",!film);
+  const dl=$("#dueLbl");if(dl)dl.textContent=film?"Film Date":"Due Date";
+  const dh=$("#dueHint");if(dh)dh.style.display=film?"none":"";
+  const al=$("#asgLbl");if(al)al.innerHTML=(film?"Shooter":"Editor")+' <span class="opt">— optional</span>';
+  const ref=$("#refRow");if(ref)ref.classList.toggle("hidden",film);
+  const au=$("#audioRow");if(au)au.classList.toggle("hidden",film);
+}
 function fillClientSelect(sel){sel.innerHTML=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.abbr)}">${esc(c.abbr)} — ${esc(c.name)}</option>`).join("");}
 function openAdd(prefillDate,prefillClient){
   if(state.locked)return;
@@ -1383,6 +1393,12 @@ function openAdd(prefillDate,prefillClient){
 }
 const RECUR_LABEL={none:"One-off",weekly:"Weekly",biweekly:"Every 2 weeks",monthly:"Monthly",bimonthly:"Every 2 months",quarterly:"Quarterly"};
 function openAddFilming(){openAdd();if(state.locked)return;curType="filming";buildTypePick();syncDueRow();$("#addTitle").textContent="New footage run";}
+async function dupFilming(id){
+  if(state.locked)return;
+  const t=state.tasks.find(x=>x.id===id);if(!t)return;
+  const copy={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,recurred:false,footageUrl:"",delivered:false,createdAt:Date.now()};
+  await backend.upsertTask(copy);refreshUI();toast("Footage run duplicated");
+}
 function filmingHTML(){
   const runs=state.tasks.filter(t=>t.type==="filming");
   const active=runs.filter(t=>!t.completed).sort((a,b)=>{if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate<b.dueDate?-1:1;});
@@ -1401,7 +1417,7 @@ function filmingHTML(){
         <div class="film-client">${esc(c.name)} <span class="film-abbr">${esc(c.abbr)}</span> ${star}</div>
         <div class="film-meta">${t.projectName?esc(t.projectName)+" · ":""}${pill} ${cad}</div>
       </div>
-      <div class="film-acts">${state.locked?"":`<button class="ra" data-edit="${t.id}" title="Edit">✎</button><button class="ra" data-del="${t.id}" title="Delete">✕</button>`}</div>
+      <div class="film-acts">${state.locked?"":`<button class="ra" data-dup="${t.id}" title="Duplicate">⧉</button><button class="ra" data-edit="${t.id}" title="Edit">✎</button><button class="ra" data-del="${t.id}" title="Delete">✕</button>`}</div>
     </div>`;
   };
   let html=head+`<div class="film-list">${active.map(row).join("")||'<div class="film-sub" style="padding:10px 4px">No upcoming runs — add one above.</div>'}</div>`;
@@ -1412,6 +1428,7 @@ function bindFilming(board){
   const a=board.querySelector("#filmAdd");if(a)a.onclick=openAddFilming;
   if(state.locked)return;
   board.querySelectorAll("[data-done]").forEach(c=>c.onchange=()=>toggleDone(c.dataset.done));
+  board.querySelectorAll("[data-dup]").forEach(b=>b.onclick=()=>dupFilming(b.dataset.dup));
   board.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEdit(b.dataset.edit));
   board.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delTask(b.dataset.del));
 }
@@ -1431,7 +1448,7 @@ async function saveEntry(){
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
-  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none"};
+  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none"};
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
