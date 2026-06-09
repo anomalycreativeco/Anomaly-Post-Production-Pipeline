@@ -213,6 +213,11 @@ textarea.inp{resize:vertical;min-height:64px}
 .cl-item .abbr{justify-self:start}
 .cl-item .cn{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cl-item select{border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;background:var(--paper);font-weight:600;font-size:13px}
+.cl-ed{font-family:inherit;width:100%;min-width:0;border:1px solid transparent;border-radius:7px;padding:6px 7px;background:transparent;color:inherit}
+.cl-ed:hover{border-color:var(--line)}
+.cl-ed:focus{outline:none;border-color:var(--sage);background:var(--paper);box-shadow:0 0 0 2px var(--sage-soft)}
+.cl-item .abbr-ed{justify-self:start;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--sage-800)}
+.cl-item .name-ed{font-weight:600;font-size:14px}
 .search{position:relative;margin-bottom:12px}
 .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
 .search input{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:9px 12px 9px 34px}
@@ -1440,15 +1445,20 @@ function renderClients(filter=""){
   const list=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(c=>!f||c.name.toLowerCase().includes(f)||c.abbr.toLowerCase().includes(f));
   $("#cliList").innerHTML=list.map(c=>`
     <div class="cl-item" data-abbr="${esc(c.abbr)}">
-      <span class="abbr">${esc(c.abbr)}</span>
-      <span class="cn">${esc(c.name)}</span>
+      <input class="cl-ed abbr-ed" data-act="abbr" value="${esc(c.abbr)}" maxlength="6" spellcheck="false" title="Client code — edits move all its entries">
+      <input class="cl-ed name-ed" data-act="name" value="${esc(c.name)}" spellcheck="false" title="Client name">
       <select data-act="cat">${CATEGORIES.map(o=>`<option value="${o.key}" ${c.cat===o.key?"selected":""}>${esc(o.label)}</option>`).join("")}</select>
       <button class="ic del" data-act="rm" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
       <div class="cl-days"><span class="lbl">Posts on</span>${["S","M","T","W","T","F","S"].map((d,i)=>`<button type="button" class="dchip ${(SCHEDULE[c.abbr]||[]).includes(i)?"on":""}" data-day="${i}" title="${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][i]}">${d}</button>`).join("")}</div>
     </div>`).join("")||`<div class="empty">No matches.</div>`;
+  const _sv=()=>($("#cliSearch")&&$("#cliSearch").value)||"";
   $("#cliList").querySelectorAll(".cl-item").forEach(it=>{
     const abbr=it.dataset.abbr;
-    it.querySelector('[data-act="cat"]').onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,cat:e.target.value});render();}};
+    it.querySelector('[data-act="cat"]').onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,cat:e.target.value});renderClients(_sv());}};
+    const nameInp=it.querySelector('[data-act="name"]');
+    if(nameInp){nameInp.onkeydown=e=>{if(e.key==="Enter")nameInp.blur();};nameInp.onchange=async()=>{const c=clientByAbbr(abbr);if(!c)return;const v=nameInp.value.trim();if(!v){nameInp.value=c.name;return;}if(v===c.name)return;await backend.upsertClient({...c,name:v});renderClients(_sv());toast("Name updated");};}
+    const abbrInp=it.querySelector('[data-act="abbr"]');
+    if(abbrInp){abbrInp.onkeydown=e=>{if(e.key==="Enter")abbrInp.blur();};abbrInp.onchange=()=>renameClient(abbr,abbrInp.value);}
     it.querySelectorAll(".dchip").forEach(btn=>btn.onclick=async()=>{const day=+btn.dataset.day,cur=SCHEDULE[abbr]||[];SCHEDULE[abbr]=cur.includes(day)?cur.filter(x=>x!==day):[...cur,day].sort((a,b)=>a-b);btn.classList.toggle("on");await backend.saveSchedule();});
     it.querySelector('[data-act="rm"]').onclick=async ()=>{
       const used=state.tasks.some(t=>t.clientAbbr===abbr);
@@ -1474,6 +1484,22 @@ async function addClient(){
   await backend.upsertClient({name,abbr,cat:$("#ncCat").value});
   $("#ncName").value="";$("#ncAbbr").value="";
   renderClients($("#cliSearch").value);render();toast(`Added ${abbr}`);
+}
+
+async function renameClient(oldAbbr,raw){
+  const c=clientByAbbr(oldAbbr);if(!c)return;
+  const sv=($("#cliSearch")&&$("#cliSearch").value)||"";
+  const nu=String(raw||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(!nu){toast("Abbreviation can't be empty");renderClients(sv);return;}
+  if(nu===oldAbbr){renderClients(sv);return;}
+  if(clientByAbbr(nu)){toast("That code is already in use");renderClients(sv);return;}
+  const affected=state.tasks.filter(t=>t.clientAbbr===oldAbbr);
+  if(affected.length&&!confirm(`Change ${oldAbbr} → ${nu}? This will update ${affected.length} entr`+(affected.length===1?"y":"ies")+" and its posting schedule.")){renderClients(sv);return;}
+  await backend.upsertClient({name:c.name,abbr:nu,cat:c.cat});
+  if(SCHEDULE[oldAbbr]){SCHEDULE[nu]=SCHEDULE[oldAbbr];delete SCHEDULE[oldAbbr];await backend.saveSchedule();}
+  await Promise.all(affected.map(t=>backend.upsertTask({...t,clientAbbr:nu})));
+  await backend.removeClient(oldAbbr);
+  renderClients(sv);render();toast(`Renamed to ${nu}`);
 }
 
 /* ============ sync status ============ */
