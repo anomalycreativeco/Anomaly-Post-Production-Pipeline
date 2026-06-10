@@ -252,6 +252,10 @@ textarea.inp{resize:vertical;min-height:64px}
 .cal-cell.drag-over{background:var(--sage-soft);outline:2px dashed var(--sage);outline-offset:-3px}
 .cchip[draggable="true"]{cursor:grab}
 .cchip.dragging{opacity:.4;pointer-events:none}
+.cchip.movable{cursor:grab;touch-action:none}
+.cchip.movable:active{cursor:grabbing}
+.cal-fly{position:fixed;z-index:99999;pointer-events:none;opacity:.94;left:0;top:0;box-shadow:0 10px 26px rgba(0,0,0,.30);transform:scale(1.02)}
+body.cal-grabbing,body.cal-grabbing *{cursor:grabbing!important;user-select:none}
 .cchip.u-over{background:var(--red-soft);color:var(--red)}
 .cchip.u-soon{background:#fbf0e6;color:var(--amber)}
 .cchip.u-week{background:var(--sage-soft);color:var(--sage-800)}
@@ -487,6 +491,12 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .film-list{display:flex;flex-direction:column;gap:8px}
 .film-list.dim{opacity:.7}
 .film-done-h{margin:22px 2px 8px;font-family:"Outfit";font-weight:700;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.film-sec{margin:24px 2px 9px;font-family:"Outfit";font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:flex;align-items:center;gap:8px}
+.film-sec.urg{color:#c0392b}
+.film-sec-n{font-family:"DM Sans";font-weight:700;font-size:11px;background:var(--canvas);color:var(--muted);border-radius:999px;padding:1px 8px}
+.film-sec.urg .film-sec-n{background:rgba(192,57,43,.12);color:#c0392b}
+.film-row.urgent{border-left:3px solid #c0392b}
+.film-row.urgent .film-abbr{background:rgba(192,57,43,.1)}
 .film-row{display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .film-row.done .film-client{text-decoration:line-through;color:var(--muted)}
 .film-chk{display:flex;align-items:center}
@@ -1051,6 +1061,48 @@ function calendarHTML(tasks){
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
   return `<div class="cal cal-month">${calHeader(title)}${calLegend()}${dowHTML}<div class="cal-grid">${cells}</div>${nodateStrip(nodate)}</div>`;
 }
+let calDrag=null, calDragged=false;
+function calCellUnder(x,y){const el=document.elementFromPoint(x,y);return el?el.closest(".cal-cell[data-date]"):null;}
+function calDragStart(b,e){
+  if(state.locked)return;
+  const t=state.tasks.find(x=>x.id===b.dataset.id);
+  if(!t||!(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)||t.completed)return;
+  calDrag={id:b.dataset.id,x0:e.clientX,y0:e.clientY,el:b,ghost:null,active:false,over:null};
+}
+function initCalDnD(){
+  if(window.__calDnD)return;window.__calDnD=true;
+  window.addEventListener("pointermove",e=>{
+    if(!calDrag)return;
+    if(!calDrag.active){
+      if(Math.hypot(e.clientX-calDrag.x0,e.clientY-calDrag.y0)<6)return;
+      calDrag.active=true;
+      calDrag.el.classList.add("dragging");
+      const g=calDrag.el.cloneNode(true);g.classList.remove("dragging");g.classList.add("cal-fly");
+      g.style.width=calDrag.el.offsetWidth+"px";
+      document.body.appendChild(g);calDrag.ghost=g;
+      document.body.classList.add("cal-grabbing");
+    }
+    calDrag.ghost.style.left=(e.clientX+10)+"px";
+    calDrag.ghost.style.top=(e.clientY+6)+"px";
+    const cell=calCellUnder(e.clientX,e.clientY);
+    if(cell!==calDrag.over){if(calDrag.over)calDrag.over.classList.remove("drag-over");calDrag.over=cell;if(cell)cell.classList.add("drag-over");}
+    e.preventDefault();
+  },{passive:false});
+  window.addEventListener("pointerup",async e=>{
+    if(!calDrag)return;
+    const d=calDrag;calDrag=null;
+    if(d.el)d.el.classList.remove("dragging");
+    if(!d.active)return;
+    if(d.ghost)d.ghost.remove();
+    document.body.classList.remove("cal-grabbing");
+    if(d.over)d.over.classList.remove("drag-over");
+    calDragged=true;setTimeout(()=>{calDragged=false;},400);
+    const cell=calCellUnder(e.clientX,e.clientY);if(!cell)return;
+    const nd=cell.dataset.date,t=state.tasks.find(x=>x.id===d.id);
+    if(!t||t.dueDate===nd)return;
+    await backend.upsertTask({...t,dueDate:nd});refreshUI();toast("Rescheduled to "+nd);
+  });
+}
 function bindCalendar(scope){
   scope.querySelectorAll(".cchip.ghost[data-gdate]").forEach(g=>{
     g.addEventListener("click",e=>{e.stopPropagation();openAdd(g.dataset.gdate,g.dataset.gclient);});
@@ -1058,25 +1110,15 @@ function bindCalendar(scope){
   scope.querySelectorAll(".cchip-tick[data-stage]").forEach(tk=>{
     tk.addEventListener("click",e=>{e.stopPropagation();advanceStage(tk.dataset.stage);});
   });
+  initCalDnD();
   scope.querySelectorAll(".cchip[data-id]").forEach(b=>{
-    b.onclick=e=>{if(e.target.closest(".cchip-tick"))return;openEdit(b.dataset.id);};
-    if(b.getAttribute("draggable")==="true"){
-      b.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",b.dataset.id);e.dataTransfer.effectAllowed="move";b.classList.add("dragging");});
-      b.addEventListener("dragend",()=>b.classList.remove("dragging"));
-    }
+    b.onclick=e=>{if(calDragged){calDragged=false;e.preventDefault();e.stopPropagation();return;}if(e.target.closest(".cchip-tick"))return;openEdit(b.dataset.id);};
+    const movable=b.getAttribute("draggable")==="true";
+    b.removeAttribute("draggable");
+    if(movable){b.classList.add("movable");b.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;calDragStart(b,e);});}
   });
   scope.querySelectorAll(".cal-cell[data-date]").forEach(cell=>{
-    cell.addEventListener("dragover",e=>{e.preventDefault();cell.classList.add("drag-over");});
-    cell.addEventListener("dragleave",()=>cell.classList.remove("drag-over"));
     cell.addEventListener("click",e=>{if(e.target.closest(".cchip"))return;openAdd(cell.dataset.date);});
-    cell.addEventListener("drop",async e=>{
-      e.preventDefault();cell.classList.remove("drag-over");
-      if(state.locked)return;
-      const id=e.dataTransfer.getData("text/plain"),t=state.tasks.find(x=>x.id===id);
-      if(!t||!(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due))return;
-      const nd=cell.dataset.date;if(t.dueDate===nd)return;
-      await backend.upsertTask({...t,dueDate:nd});refreshUI();toast("Rescheduled");
-    });
   });
   scope.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{
     const a=b.dataset.cal;
@@ -1399,19 +1441,30 @@ async function dupFilming(id){
   const copy={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,recurred:false,footageUrl:"",delivered:false,createdAt:Date.now()};
   await backend.upsertTask(copy);refreshUI();toast("Footage run duplicated");
 }
+function bizDaysUntil(ds){
+  const today=new Date(todayStr()+"T00:00:00"),due=new Date(ds+"T00:00:00");
+  if(due<=today)return 0;
+  let n=0,d=new Date(today);
+  while(d<due){d.setDate(d.getDate()+1);const wd=d.getDay();if(wd!==0&&wd!==6)n++;}
+  return n;
+}
 function filmingHTML(){
   const runs=state.tasks.filter(t=>t.type==="filming");
-  const active=runs.filter(t=>!t.completed).sort((a,b)=>{if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate<b.dueDate?-1:1;});
+  const byDate=(a,b)=>{if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate<b.dueDate?-1:1;};
+  const isUrg=t=>t.dueDate&&bizDaysUntil(t.dueDate)<=5;
+  const activeAll=runs.filter(t=>!t.completed);
+  const urgent=activeAll.filter(isUrg).sort(byDate);
+  const upcoming=activeAll.filter(t=>!isUrg(t)).sort(byDate);
   const done=runs.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0)).slice(0,12);
   const head=`<div class="film-head"><div><h2 class="film-title">Footage Runs</h2><div class="film-sub">Recurring shoots to capture footage for future videos. Complete one and the next is scheduled automatically — so they never slip.</div></div>${state.locked?"":'<button class="btn primary" id="filmAdd">+ Add footage run</button>'}</div>`;
-  if(!active.length&&!done.length) return head+`<div class="empty"><div>No footage runs yet.</div><div class="film-sub">Add a client, a date, and a recurring cadence to get started.</div></div>`;
+  if(!activeAll.length&&!done.length) return head+`<div class="empty"><div>No footage runs yet.</div><div class="film-sub">Add a client, a date, and a recurring cadence to get started.</div></div>`;
   const row=t=>{
     const c=clientByAbbr(t.clientAbbr)||{name:t.clientAbbr,abbr:t.clientAbbr};
     const di=t.dueDate?dueInfo(t.dueDate):null;
     const pill=di?`<span class="due-pill ${di.cls}">${esc(di.label)}</span>`:`<span class="due-pill nodate">No date</span>`;
     const cad=(t.recur&&t.recur!=="none")?`<span class="film-cad">↻ ${RECUR_LABEL[t.recur]||t.recur}</span>`:`<span class="film-cad oneoff">One-off</span>`;
     const star=t.footageUrl&&String(t.footageUrl).trim()?`<span class="film-star" title="Footage uploaded — ready to edit">★</span>`:"";
-    return `<div class="film-row ${t.completed?"done":""}" data-id="${t.id}">
+    return `<div class="film-row ${t.completed?"done":""} ${(!t.completed&&isUrg(t))?"urgent":""}" data-id="${t.id}">
       <label class="film-chk"><input type="checkbox" class="rowdone" data-done="${t.id}" ${t.completed?"checked":""} ${state.locked?"disabled":""}></label>
       <div class="film-main">
         <div class="film-client">${esc(c.name)} <span class="film-abbr">${esc(c.abbr)}</span> ${star}</div>
@@ -1420,9 +1473,8 @@ function filmingHTML(){
       <div class="film-acts">${state.locked?"":`<button class="ra" data-dup="${t.id}" title="Duplicate">⧉</button><button class="ra" data-edit="${t.id}" title="Edit">✎</button><button class="ra" data-del="${t.id}" title="Delete">✕</button>`}</div>
     </div>`;
   };
-  let html=head+`<div class="film-list">${active.map(row).join("")||'<div class="film-sub" style="padding:10px 4px">No upcoming runs — add one above.</div>'}</div>`;
-  if(done.length) html+=`<div class="film-done-h">Recently completed</div><div class="film-list dim">${done.map(row).join("")}</div>`;
-  return html;
+  const sec=(label,items,kind)=>items.length?`<div class="film-sec ${kind}">${label} <span class="film-sec-n">${items.length}</span></div><div class="film-list ${kind==="done"?"dim":""}">${items.map(row).join("")}</div>`:"";
+  return head+sec("Urgent",urgent,"urg")+sec("Upcoming",upcoming,"up")+sec("Completed",done,"done");
 }
 function bindFilming(board){
   const a=board.querySelector("#filmAdd");if(a)a.onclick=openAddFilming;
