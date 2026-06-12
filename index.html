@@ -867,7 +867,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-function todayStr(){return new Date().toISOString().slice(0,10);}
+function todayStr(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
 function dueInfo(ds){
   if(!ds)return null;
   const today=new Date(todayStr()+"T00:00:00"),due=new Date(ds+"T00:00:00");
@@ -1163,7 +1163,7 @@ function dashboardHTML(){
   const otCard=`<div class="card statbig"><div class="card-h">On-time rate · ${MN[new Date().getMonth()]}</div>
     <div class="bigwrap">
       ${ot.pct===null?`<div class="bigbar"></div>`:`<div class="bignum">${ot.pct}%</div>`}
-      <div class="bigsub">${ot.pct===null?"No posts scheduled yet this month":`${ot.onTime} of ${ot.total} scheduled posts on time`+(ot.missed?` · ${ot.missed} missed or late`:"")}</div>
+      <div class="bigsub">${ot.pct===null?"No posts logged yet this month":`${ot.onTime} of ${ot.total} logged posts on time`+(ot.missed?` · ${ot.missed} late or unposted`:"")}</div>
     </div></div>`;
   const upPts=upcomingLoadData();
   const catData=CATEGORIES.map(c=>({label:c.label,value:active.filter(t=>(clientByAbbr(t.clientAbbr)||{}).cat===c.key).length,color:c.color})).filter(d=>d.value>0);
@@ -1228,27 +1228,21 @@ function upcomingLoadData(){
   return out;
 }
 function onTimeRate(){
-  // Counts every post that was SUPPOSED to go out on or before today this month:
-  // each client's scheduled "Posts on" day, plus any dated post. A slot with no
-  // on-time post (never made, made late, or not posted) counts against the rate.
+  // Only looks at posts that were actually logged (a dated entry exists) on days
+  // already passed this month. On time = completed on or before its date; logged
+  // posts that went out late or never posted count against. Unmade days don't count.
   const now=new Date(),y=now.getFullYear(),m=now.getMonth(),today=todayStr(),mStart=ymd(new Date(y,m,1));
   const isPost=t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.type!=="filming"&&t.dueDate;
   const byKey={};
-  state.tasks.forEach(t=>{if(isPost(t)){const k=t.clientAbbr+"|"+t.dueDate;(byKey[k]=byKey[k]||[]).push(t);}});
-  const obligations=new Set();
-  for(let d=new Date(y,m,1);ymd(d)<=today;d.setDate(d.getDate()+1)){
-    const ds=ymd(d),wd=d.getDay();
-    state.clients.forEach(c=>{if((SCHEDULE[c.abbr]||[]).includes(wd))obligations.add(c.abbr+"|"+ds);});
-  }
-  state.tasks.forEach(t=>{if(isPost(t)&&t.dueDate>=mStart&&t.dueDate<=today)obligations.add(t.clientAbbr+"|"+t.dueDate);});
-  let onTime=0,total=0;
-  obligations.forEach(k=>{
+  state.tasks.forEach(t=>{if(isPost(t)&&t.dueDate>=mStart&&t.dueDate<today){const k=t.clientAbbr+"|"+t.dueDate;(byKey[k]=byKey[k]||[]).push(t);}});
+  const keys=Object.keys(byKey);
+  if(!keys.length)return {pct:null,onTime:0,total:0,missed:0};
+  let onTime=0;
+  keys.forEach(k=>{
     const ds=k.split("|")[1];
-    const met=(byKey[k]||[]).some(t=>t.completed&&t.completedAt&&ymd(new Date(t.completedAt))<=ds);
-    if(ds===today&&!met)return; // today's slots aren't a miss until the day is over
-    total++;if(met)onTime++;
+    if((byKey[k]).some(t=>t.completed&&t.completedAt&&ymd(new Date(t.completedAt))<=ds))onTime++;
   });
-  if(!total)return {pct:null,onTime:0,total:0,missed:0};
+  const total=keys.length;
   return {pct:Math.round(onTime/total*100),onTime,total,missed:total-onTime};
 }
 function miniBars(items){
