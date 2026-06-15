@@ -864,7 +864,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.0.1", APP_BUILD="2026-06-15";
+const APP_VERSION="1.0.2", APP_BUILD="2026-06-15";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1105,7 +1105,7 @@ function initCalDnD(){
     if(!cell)return;
     const nd=cell.dataset.date,t=state.tasks.find(x=>x.id===d.id);
     if(!t||t.dueDate===nd)return;
-    await backend.upsertTask({...t,dueDate:nd});refreshUI();toast("Rescheduled to "+nd);
+    try{await backend.upsertTask({...t,dueDate:nd});toast("Rescheduled to "+nd);}catch(err){toast("Couldn\u2019t save reschedule \u2014 check connection");}refreshUI();
   });
 }
 function bindCalendar(scope){
