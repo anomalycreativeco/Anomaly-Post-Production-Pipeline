@@ -75,7 +75,9 @@ a{color:inherit}
 .cchip.done .cchip-lbl{text-decoration:line-through}
 body.locked .cchip-tick{display:none}
 .cchip:hover{filter:brightness(.96)}
-.cchip.over{box-shadow:inset 0 0 0 1px var(--red)}
+.cchip.over{background:rgba(192,57,43,.18)!important;border-left:3px solid var(--red)!important;box-shadow:inset 0 0 0 1px var(--red);color:#8f2317}
+.cchip.over .cchip-lbl{color:#8f2317;font-weight:600}
+.cchip.over .cchip-tick{border-color:var(--red);opacity:.8}
 .cchip.daily{background:#eef3f1;color:var(--sage-800)}
 .cchip.longform{background:#eef1f5;color:#4a5878}
 .cchip.clips{background:#f5eef3;color:#7a4a6c}
@@ -768,12 +770,13 @@ const backend={
   async saveSchedule(){const arr=Object.keys(SCHEDULE).filter(a=>SCHEDULE[a]&&SCHEDULE[a].length).map(a=>({abbr:a,days:SCHEDULE[a]}));if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","schedule"),{list:arr});else LS.set(LK_SCHED,arr);},
   async saveReport(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","report"),{list:REPORT_RECIP});else LS.set(LK_REPORT,REPORT_RECIP);},
   async saveJarvis(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","jarvis"),{list:JARVIS_ENDPOINT?[JARVIS_ENDPOINT]:[]});else LS.set(LK_JARVIS,JARVIS_ENDPOINT||"");},
+  async saveTimezone(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","timezone"),{list:PROJECT_TZ?[PROJECT_TZ]:[]});else LS.set(LK_TZ,PROJECT_TZ||"");},
 };
 
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
 let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
-const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", SALT="acc::";
+const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", LK_TZ="acc_project_tz", SALT="acc::";
 let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
 let SEC_HASH=null, lockPrompted=false;
 function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);}
@@ -803,7 +806,8 @@ function initLocal(){
   SCHEDULE=Object.fromEntries((LS.get(LK_SCHED,[])||[]).map(e=>[e.abbr,e.days||[]]));
   REPORT_RECIP=LS.get(LK_REPORT,[])||[];
   JARVIS_ENDPOINT=LS.get(LK_JARVIS,"")||"";
-  rebuildConfigUI(); ensureDailyDue(); ensureFilmingType(); setSyncStatus("local"); refreshUI(); rollDailies(); refreshLock();
+  PROJECT_TZ=LS.get(LK_TZ,"")||"";
+  rebuildConfigUI(); ensureDailyDue(); ensureFilmingType(); setSyncStatus("local"); refreshUI(); refreshLock();
 }
 async function initFirebase(){
   setSyncStatus("connecting");
@@ -819,11 +823,11 @@ async function initFirebase(){
     const seeds={editors:EDITORS_LIST,categories:CATEGORIES,types:TYPES};
     for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
     onSnapshot(collection(db,"config"),s=>{
-      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";});
+      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";});
       rebuildConfigUI();ensureDailyDue();ensureFilmingType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
-    onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();rollDailies();},()=>setSyncStatus("err"));
+    onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
   }catch(e){console.error("Firebase error:",e);setSyncStatus("err");fbReady=false;initLocal();}
 }
 async function ensureFilmingType(){
@@ -867,7 +871,13 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-function todayStr(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+const DEFAULT_TZ="America/New_York";
+let PROJECT_TZ="";
+function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
+function tzYMD(date){try{const p=new Intl.DateTimeFormat("en-CA",{timeZone:projTZ(),year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);const g=t=>p.find(x=>x.type===t).value;return `${g("year")}-${g("month")}-${g("day")}`;}catch(e){const d=date,p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}}
+function todayStr(){return tzYMD(new Date());}
+const TZ_LIST=[["Eastern — America/New_York","America/New_York"],["Central — America/Chicago","America/Chicago"],["Mountain — America/Denver","America/Denver"],["Arizona (no DST) — America/Phoenix","America/Phoenix"],["Pacific — America/Los_Angeles","America/Los_Angeles"],["Alaska — America/Anchorage","America/Anchorage"],["Hawaii — Pacific/Honolulu","Pacific/Honolulu"],["UTC","UTC"],["London — Europe/London","Europe/London"]];
+function tzOptionsHTML(){const cur=projTZ();let extra="";if(!TZ_LIST.some(z=>z[1]===cur))extra=`<option value="${esc(cur)}" selected>${esc(cur)}</option>`;return extra+TZ_LIST.map(z=>`<option value="${z[1]}" ${z[1]===cur?"selected":""}>${esc(z[0])}</option>`).join("");}
 function dueInfo(ds){
   if(!ds)return null;
   const today=new Date(todayStr()+"T00:00:00"),due=new Date(ds+"T00:00:00");
@@ -1316,10 +1326,10 @@ function tableHTML(rows,compact){
 }
 function dailySplitHTML(active){
   const today=todayStr();
-  const todays=active.filter(t=>t.dueDate===today);
-  const later=active.filter(t=>t.dueDate!==today).sort((a,b)=>{if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate<b.dueDate?-1:a.dueDate>b.dueDate?1:0;});
+  const todays=active.filter(t=>t.dueDate&&t.dueDate<=today).sort((a,b)=>a.dueDate<b.dueDate?-1:a.dueDate>b.dueDate?1:0);
+  const later=active.filter(t=>!t.dueDate||t.dueDate>today).sort((a,b)=>{if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate<b.dueDate?-1:a.dueDate>b.dueDate?1:0;});
   const col=(title,rows,empty)=>`<div class="daily-col"><div class="dc-head"><span class="dc-title">${title}</span><span class="dc-count">${rows.length}</span></div>${rows.length?tableHTML(rows,true):`<div class="dc-empty">${empty}</div>`}</div>`;
-  return `<div class="daily-split">${col("Due today",todays,"Nothing due today")}${col("Due later",later,"Nothing scheduled later")}</div>`;
+  return `<div class="daily-split">${col("Due today & missed",todays,"Nothing due")}${col("Due later",later,"Nothing scheduled later")}</div>`;
 }
 const ICON={
   link:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>`,
@@ -1658,6 +1668,13 @@ function settingsHTML(){
           <span class="set-hint">Paste your Cloudflare Worker URL to switch Jarvis to the full Claude AI brain and enable the automatic Monday 9 AM report email. Leave blank to use the built-in offline brain.</span>
         </div>
       </div>
+      <div class="card set-card set-wide">
+        <div class="card-h">Project time zone</div>
+        <div class="set-add">
+          <select class="inp" id="tzSel" style="flex:1 1 240px">${tzOptionsHTML()}</select>
+          <span class="set-hint">Everyone shares this zone for “today”, due dates, and missed-post logic — independent of each device’s clock. Change it if your team’s day should roll over somewhere other than ${esc(projTZ())}.</span>
+        </div>
+      </div>
   </div>`;
 }
 async function addEditor(){
@@ -1744,6 +1761,7 @@ function bindSettings(scope){
   const srb=$("#secRemove");if(srb)srb.onclick=removePassword;
   const rsb=$("#repSave");if(rsb)rsb.onclick=setReportRecip;
   const jsb=$("#jarSave");if(jsb)jsb.onclick=setJarvisEndpoint;
+  const tzs=$("#tzSel");if(tzs)tzs.onchange=()=>setTimezone(tzs.value);
   const spw=$("#secPw");if(spw)spw.onkeydown=e=>{if(e.key==="Enter")setPassword();};
   scope.querySelectorAll(".set-row[data-ed]").forEach(r=>{const nm=r.dataset.ed;
     r.querySelector('[data-act="edcolor"]').onchange=async e=>{const ed=EDITORS_LIST.find(x=>x.name===nm);if(ed){ed.color=e.target.value;await backend.saveEditors();afterConfigChange();}};
@@ -1792,6 +1810,7 @@ async function setPassword(){
   SEC_HASH=hashPw(pw);await backend.saveSecurity();
   LS.set(LK_UNLOCK,String(Date.now()));state.locked=false;refreshLock();afterConfigChange();toast("Edit password set");
 }
+async function setTimezone(tz){PROJECT_TZ=tz||"";await backend.saveTimezone();render();toast("Project time zone set to "+projTZ());}
 async function setJarvisEndpoint(){
   const u=$("#jarUrl").value.trim().replace(/\/+$/,"");JARVIS_ENDPOINT=u;await backend.saveJarvis();toast(u?"Jarvis AI endpoint saved":"Endpoint cleared");
 }
