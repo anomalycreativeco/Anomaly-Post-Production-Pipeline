@@ -1101,13 +1101,14 @@ function initCalDnD(){
   window.addEventListener("pointerup",async e=>{
     if(!calDrag)return;
     const d=calDrag;calDrag=null;
-    if(d.el)d.el.classList.remove("dragging");
-    if(!d.active)return;
+    if(!d.active){if(d.el)d.el.classList.remove("dragging");return;}
+    const cell=calCellUnder(e.clientX,e.clientY);
     if(d.ghost)d.ghost.remove();
+    if(d.el)d.el.classList.remove("dragging");
     document.body.classList.remove("cal-grabbing");
     if(d.over)d.over.classList.remove("drag-over");
     calDragged=true;setTimeout(()=>{calDragged=false;},400);
-    const cell=calCellUnder(e.clientX,e.clientY);if(!cell)return;
+    if(!cell)return;
     const nd=cell.dataset.date,t=state.tasks.find(x=>x.id===d.id);
     if(!t||t.dueDate===nd)return;
     await backend.upsertTask({...t,dueDate:nd});refreshUI();toast("Rescheduled to "+nd);
