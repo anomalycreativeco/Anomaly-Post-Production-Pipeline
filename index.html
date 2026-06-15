@@ -514,6 +514,7 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .film-acts{display:flex;gap:6px;flex:0 0 auto}
 .film-acts .ra{background:none;border:1px solid var(--line);color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px}
 .film-acts .ra:hover{background:var(--canvas);color:var(--ink)}
+.ver-foot{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.03em;margin:26px 0 8px;opacity:.75}
 </style>
 
 <div class="topbar">
@@ -652,12 +653,7 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
    Team sync turns on automatically once "projectId" is filled in.
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDqSNiF9EP_rV2rDRo1lf7IFqrKVPQ6tgw",
-  authDomain: "anomaly-post-pipeline.firebaseapp.com",
-  projectId: "anomaly-post-pipeline",
-  storageBucket: "anomaly-post-pipeline.firebasestorage.app",
-  messagingSenderId: "657647176747",
-  appId: "1:657647176747:web:cee710794e2b04a3572e6e"
+  apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: ""
 };
 /* ============================================================ */
 
@@ -856,14 +852,6 @@ async function ensureDailyDue(){
   const d=TYPES.find(t=>t.id==="daily");
   if(d&&d.due===false){d.due=true;rebuildTypeMaps();rebuildConfigUI();try{await backend.saveTypes();}catch(e){}}
 }
-async function rollDailies(){
-  const dt=TYPES.find(t=>t.id==="daily"); if(!dt||!dt.due)return;
-  const today=todayStr();
-  const stale=state.tasks.filter(t=>t.type==="daily"&&!t.completed&&t.dueDate&&t.dueDate<today);
-  if(!stale.length)return;
-  for(const t of stale){await backend.upsertTask({...t,dueDate:today});}
-  refreshUI();
-}
 async function afterConfigChange(){rebuildConfigUI();render();}
 
 /* ============ helpers ============ */
@@ -871,6 +859,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
+const APP_VERSION="1.0.1", APP_BUILD="2026-06-15";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1676,6 +1665,7 @@ function settingsHTML(){
           <span class="set-hint">Everyone shares this zone for “today”, due dates, and missed-post logic — independent of each device’s clock. Change it if your team’s day should roll over somewhere other than ${esc(projTZ())}.</span>
         </div>
       </div>
+      <div class="ver-foot">Anomaly Pipeline · v${APP_VERSION} · built ${APP_BUILD}</div>
   </div>`;
 }
 async function addEditor(){
