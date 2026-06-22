@@ -86,6 +86,18 @@ body.locked .cchip-tick{display:none}
 .cchip.clips{background:#f5eef3;color:#7a4a6c}
 .cchip.batch{background:#f3f0ea;color:#7a6a45}
 .cchip.listings{background:#eaf3ee;color:#3f7457}
+:root{--rev:#d0631e}
+.cchip.revision{position:relative;overflow:hidden;box-shadow:inset 0 0 0 1.6px var(--rev)!important}
+.cchip.revision::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent 0 5px,rgba(208,99,30,.22) 5px 10px);pointer-events:none}
+.cchip-rev{flex:0 0 auto;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:inherit;opacity:.4;cursor:pointer;font-size:12px;line-height:1;padding:0;border-radius:4px;position:relative;z-index:2}
+.cchip-rev:hover{opacity:1;background:rgba(255,255,255,.55)}
+.cchip-rev.on{opacity:1;color:var(--rev)}
+body.locked .cchip-rev{display:none}
+.row.rev{box-shadow:inset 3px 0 0 var(--rev)}
+.revtag{display:inline-block;font-size:10.5px;font-weight:700;color:var(--rev);background:rgba(208,99,30,.12);border:1px solid rgba(208,99,30,.34);border-radius:5px;padding:1px 6px;margin-bottom:3px;letter-spacing:.02em}
+.ic.rev.on{color:var(--rev);background:rgba(208,99,30,.12)}
+.tab.revtab{background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(208,99,30,.13) 6px 12px)}
+.tab.revtab.active{background:var(--rev);color:#fff}
 .cal-nodate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);background:var(--canvas)}
 .cal-nodate .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .cal-nodate .cchip{width:auto}
@@ -228,7 +240,7 @@ textarea.inp{resize:vertical;min-height:64px}
 .search input{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:9px 12px 9px 34px}
 .search input:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px var(--sage-soft)}
 
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:11px;font-weight:600;font-size:13px;box-shadow:var(--shadow-lg);opacity:0;transition:.25s;z-index:80;pointer-events:none}
+.toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:11px;font-weight:600;font-size:13px;box-shadow:var(--shadow-lg);opacity:0;transition:.25s;z-index:80;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 @media(max-width:980px){
@@ -608,6 +620,7 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
       <div class="frow"><label id="asgLbl">Editor <span class="opt">— optional</span></label><select class="inp" id="fAssignee"></select></div>
       <div class="frow" id="dueRow"><label id="dueLbl">Due Date</label><input type="date" class="inp" id="fDue"><div class="hint" id="dueHint">Dailies don't use due dates.</div></div>
       <div class="frow" id="deliverRow"><label>Delivery</label><label class="chk"><input type="checkbox" id="fDelivered"> Delivered to Slack — production done, not yet posted</label></div>
+      <div class="frow" id="revRow"><label>Revision</label><label class="chk"><input type="checkbox" id="fRevision"> Needs revision — flagged for rework</label></div>
       <div class="frow" id="recurRow"><label>Recurring</label><select class="inp" id="fRecur"><option value="none">One-off</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="bimonthly">Every 2 months</option><option value="quarterly">Quarterly</option></select><div class="hint">When completed, the next run is auto-scheduled.</div></div>
       <div class="frow" id="refRow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"></div>
       <div class="f2">
@@ -776,15 +789,63 @@ const backend={
   async saveReport(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","report"),{list:REPORT_RECIP});else LS.set(LK_REPORT,REPORT_RECIP);},
   async saveJarvis(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","jarvis"),{list:JARVIS_ENDPOINT?[JARVIS_ENDPOINT]:[]});else LS.set(LK_JARVIS,JARVIS_ENDPOINT||"");},
   async saveTimezone(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","timezone"),{list:PROJECT_TZ?[PROJECT_TZ]:[]});else LS.set(LK_TZ,PROJECT_TZ||"");},
+  async savePublish(v,nonce){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","appversion"),{list:[String(v),nonce!=null?String(nonce):""]});},
+  async saveAdmin(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","admin"),{list:ADMIN_HASH?[ADMIN_HASH]:[]});else LS.set("acc_admin_hash",ADMIN_HASH||"");},
 };
 
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
-let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
+let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
 const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", LK_TZ="acc_project_tz", LK_VIEW="acc_view", SALT="acc::";
 let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
 let SEC_HASH=null, lockPrompted=false;
 function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);}
+
+/* ===== auto-update + admin ===== */
+let ADMIN_HASH=null, APPVER_NONCE=null;
+function cmpVer(a,b){const pa=String(a).split(".").map(n=>parseInt(n,10)||0),pb=String(b).split(".").map(n=>parseInt(n,10)||0);for(let i=0;i<Math.max(pa.length,pb.length);i++){const x=pa[i]||0,y=pb[i]||0;if(x>y)return 1;if(x<y)return -1;}return 0;}
+function forceReload(tag){
+  let prev=null; try{prev=sessionStorage.getItem("acc_reloaded_for");}catch(e){}
+  if(prev===tag){ if(!LS.get("acc_hide_conflict",false))toast("An update is published — hard-refresh to update (Cmd+Shift+R)"); return; }
+  try{sessionStorage.setItem("acc_reloaded_for",tag);}catch(e){}
+  try{toast("Updating to the latest version…");}catch(e){}
+  setTimeout(()=>{try{location.reload();}catch(e){}},350);
+}
+function handleVersionDoc(list){
+  const pubV=(list&&list[0])?String(list[0]):"0.0.0";
+  const nonce=(list&&list[1]!=null)?String(list[1]):"";
+  const c=cmpVer(pubV,APP_VERSION);
+  if(c>0){forceReload("v:"+pubV);return;}
+  if(c<0&&fb()){backend.savePublish(APP_VERSION,nonce).catch(()=>{});}
+  if(APPVER_NONCE===null){APPVER_NONCE=nonce;}
+  else if(nonce&&nonce!==APPVER_NONCE){APPVER_NONCE=nonce;forceReload("n:"+nonce);}
+}
+function isAdmin(){return !!state.admin;}
+function tryAdminUnlock(){
+  const el=$("#admEnter"); if(!el)return; const pw=el.value.trim();
+  if(!ADMIN_HASH){toast("No admin password set yet");return;}
+  if(hashPw(pw)===ADMIN_HASH){state.admin=true;try{sessionStorage.setItem("acc_admin","1");}catch(e){}toast("Admin controls unlocked");render();}
+  else toast("Incorrect password");
+}
+function adminLock(){state.admin=false;try{sessionStorage.removeItem("acc_admin");}catch(e){}toast("Admin locked");render();}
+async function setAdminPw(){
+  const el=$("#admPw"); if(!el)return; const pw=el.value.trim();
+  if(pw.length<4){toast("Use at least 4 characters");return;}
+  ADMIN_HASH=hashPw(pw);await backend.saveAdmin();toast("Admin password saved");afterConfigChange();
+}
+async function adminForceReloadAll(){
+  if(!isAdmin())return;
+  if(!fb()){toast("Force-reload works on the live site only");return;}
+  if(!confirm("Force EVERY open session running this version (or newer) to reload now?"))return;
+  const nonce=String(Date.now()); APPVER_NONCE=nonce;
+  try{sessionStorage.setItem("acc_reloaded_for","n:"+nonce);}catch(e){}
+  try{await backend.savePublish(APP_VERSION,nonce);toast("Reload signal sent to all sessions");}catch(e){toast("Could not send signal");}
+}
+async function adminRepublish(){
+  if(!isAdmin())return;
+  if(!fb()){toast("Works on the live site only");return;}
+  try{await backend.savePublish(APP_VERSION,APPVER_NONCE||"");toast("Re-published v"+APP_VERSION);}catch(e){toast("Could not publish");}
+}
 
 async function init(){
   state.theme=LS.get("acc_theme","light");
@@ -794,6 +855,7 @@ async function init(){
   setInterval(()=>{const el=document.getElementById("tzNow"); if(el) el.textContent=fmtTZNow();},1000);
   const savedView=LS.get(LK_VIEW,"list")||"list"; state.view=savedView;
   document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===savedView));
+  try{state.admin=sessionStorage.getItem("acc_admin")==="1";}catch(e){}
   if(USE_FB) await initFirebase();
   else initLocal();
 }
@@ -812,6 +874,7 @@ function initLocal(){
   let tk=LS.get(LK_T,null); if(tk===null){tk=sampleTasks();LS.set(LK_T,tk);}
   state.clients=cl; state.tasks=tk;
   SEC_HASH=LS.get(LK_SEC,"")||null;
+  ADMIN_HASH=LS.get("acc_admin_hash","")||null;
   SCHEDULE=Object.fromEntries((LS.get(LK_SCHED,[])||[]).map(e=>[e.abbr,e.days||[]]));
   REPORT_RECIP=LS.get(LK_REPORT,[])||[];
   JARVIS_ENDPOINT=LS.get(LK_JARVIS,"")||"";
@@ -831,8 +894,9 @@ async function initFirebase(){
     const cfg=await getDocs(collection(db,"config")), have=new Set(cfg.docs.map(d=>d.id));
     const seeds={editors:EDITORS_LIST,categories:CATEGORIES,types:TYPES};
     for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
+    if(!have.has("appversion"))await FBSDK.setDoc(doc(db,"config","appversion"),{list:[APP_VERSION,""]});
     onSnapshot(collection(db,"config"),s=>{
-      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";});
+      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
       rebuildConfigUI();ensureDailyDue();ensureFilmingType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
@@ -872,7 +936,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.0.5", APP_BUILD="2026-06-15";
+const APP_VERSION="1.0.8", APP_BUILD="2026-06-22";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -911,13 +975,15 @@ function buildEditorSelects(){
 function buildTabs(){
   const el=$("#tabs");
   const tabs=[{id:"master",label:"Master"}].concat(TYPES.filter(t=>t.id!=="filming").map(t=>({id:t.id,label:t.label})));
-  el.innerHTML=tabs.map(t=>`<button class="tab${t.id==="master"?" master":""}${t.id===state.tab?" active":""}" data-tab="${t.id}">${t.label}<span class="ct" data-ct="${t.id}">0</span></button>`).join("");
+  tabs.push({id:"__rev",label:"Revisions"});
+  el.innerHTML=tabs.map(t=>`<button class="tab${t.id==="master"?" master":""}${t.id==="__rev"?" revtab":""}${t.id===state.tab?" active":""}" data-tab="${t.id}">${t.label}<span class="ct" data-ct="${t.id}">0</span></button>`).join("");
   el.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.quick=null;buildTabs();render();});
 }
 function updateCounts(){
   const active=state.tasks.filter(t=>!t.completed&&t.type!=="filming");
   TYPES.forEach(t=>{const e=document.querySelector(`[data-ct="${t.id}"]`);if(e)e.textContent=active.filter(x=>x.type===t.id).length;});
   const m=document.querySelector('[data-ct="master"]');if(m)m.textContent=active.length;
+  const rv=document.querySelector('[data-ct="__rev"]');if(rv)rv.textContent=active.filter(x=>x.revision).length;
 }
 
 /* ============ filter & sort ============ */
@@ -943,7 +1009,9 @@ function render(){
   if(ctrls)ctrls.style.display=(state.view==="dashboard"||state.view==="settings"||state.view==="filming")?"none":"";
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
-  const pool=state.tasks.filter(t=>t.type!=="filming"&&passCat(t)&&passAsg(t)&&matchesSearch(t)&&(state.tab==="master"||t.type===state.tab));
+  let pool=state.tasks.filter(t=>t.type!=="filming"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
+  if(state.tab==="__rev")pool=pool.filter(t=>t.revision);
+  else if(state.tab!=="master")pool=pool.filter(t=>t.type===state.tab);
   const activeRaw=pool.filter(t=>!t.completed);
   const active=sortTasks(activeRaw);
   statsEl.innerHTML=(state.tab==="master"&&state.view==="list")?statsStrip(activeRaw,pool.filter(t=>t.completed).length):"";
@@ -962,7 +1030,8 @@ function render(){
   }
   else{
     let rows=active,qlabel=null;
-    if(state.tab==="master"&&state.quick){
+    if(state.tab==="__rev"){qlabel="Revisions";}
+    else if(state.tab==="master"&&state.quick){
       if(state.quick==="overdue"){rows=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days<0);qlabel="Overdue";}
       else if(state.quick==="due7"){rows=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days>=0&&dueInfo(t.dueDate).days<=6);qlabel="Due within 7 days";}
       else if(state.quick==="completed"){rows=pool.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));qlabel="Completed";}
@@ -970,7 +1039,7 @@ function render(){
     const banner=qlabel?`<div class="qbanner">Showing <b>${qlabel}</b> · ${rows.length}<button class="qclear" type="button">Clear filter</button></div>`:"";
     board.innerHTML=banner+(rows.length?tableHTML(rows):emptyHTML());
     bindRows(board);
-    const qc=board.querySelector(".qclear");if(qc)qc.onclick=()=>{state.quick=null;render();};
+    const qc=board.querySelector(".qclear");if(qc)qc.onclick=()=>{if(state.tab==="__rev"){state.tab="master";buildTabs();}state.quick=null;render();};
   }
   const done=pool.filter(t=>t.completed).sort((x,y)=>(y.completedAt||0)-(x.completedAt||0));
   $("#compLabel").textContent=`Completed (${done.length})`;
@@ -1009,7 +1078,7 @@ function calChip(t){
   const drag=(!t.completed&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)?'draggable="true"':"";
   const ready=t.footageUrl&&String(t.footageUrl).trim()?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
   const recur=(t.type==="filming"&&t.recur&&t.recur!=="none")?`<span class="cchip-recur" title="Recurring footage run">↻</span>`:"";
-  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${t.completed?"done":""}" ${style} ${drag} data-id="${t.id}" title="${esc((t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span></span>`;
+  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
 }
 function calHeader(title){
   return `<div class="cal-head">
@@ -1117,7 +1186,7 @@ function initCalDnD(){
     const _want=nd,_tid=t.id;
     try{await backend.upsertTask({...t,dueDate:nd});toast("Rescheduled to "+nd);}catch(err){toast("Couldn\u2019t save reschedule \u2014 check connection");}
     refreshUI();
-    setTimeout(()=>{const cur=state.tasks.find(x=>x.id===_tid);if(cur&&cur.dueDate!==_want)toast("Reschedule was reverted \u2014 an OLD version is still open in another tab or device. Refresh every tab to v"+APP_VERSION+".");},1700);
+    setTimeout(()=>{const cur=state.tasks.find(x=>x.id===_tid);if(cur&&cur.dueDate!==_want&&!LS.get("acc_hide_conflict",false))toast("Reschedule was reverted \u2014 an OLD version is still open in another tab or device. Refresh every tab to v"+APP_VERSION+".");},1700);
   });
 }
 function bindCalendar(scope){
@@ -1127,12 +1196,15 @@ function bindCalendar(scope){
   scope.querySelectorAll(".cchip-tick[data-stage]").forEach(tk=>{
     tk.addEventListener("click",e=>{e.stopPropagation();advanceStage(tk.dataset.stage);});
   });
+  scope.querySelectorAll(".cchip-rev[data-rev]").forEach(rv=>{
+    rv.addEventListener("click",e=>{e.stopPropagation();toggleRevision(rv.dataset.rev);});
+  });
   initCalDnD();
   scope.querySelectorAll(".cchip[data-id]").forEach(b=>{
-    b.onclick=e=>{if(calDragged){calDragged=false;e.preventDefault();e.stopPropagation();return;}if(e.target.closest(".cchip-tick"))return;openEdit(b.dataset.id);};
+    b.onclick=e=>{if(calDragged){calDragged=false;e.preventDefault();e.stopPropagation();return;}if(e.target.closest(".cchip-tick")||e.target.closest(".cchip-rev"))return;openEdit(b.dataset.id);};
     const movable=b.getAttribute("draggable")==="true";
     b.removeAttribute("draggable");
-    if(movable){b.classList.add("movable");b.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;calDragStart(b,e);});}
+    if(movable){b.classList.add("movable");b.addEventListener("pointerdown",e=>{if(e.target.closest(".cchip-rev")||e.target.closest(".cchip-tick"))return;if(e.pointerType==="mouse"&&e.button!==0)return;calDragStart(b,e);});}
   });
   scope.querySelectorAll(".cal-cell[data-date]").forEach(cell=>{
     cell.addEventListener("click",e=>{if(e.target.closest(".cchip"))return;openAdd(cell.dataset.date);});
@@ -1349,13 +1421,14 @@ function rowHTML(t){
   const di=tp.due?dueInfo(t.dueDate):null;
   const dueCell=!tp.due?`<span class="due none">—</span>`:(di?`<span class="due ${di.cls}"><span class="pill">${esc(di.label)}</span></span>`:`<span class="due none">no date</span>`);
   const link=(url,kind,svg)=>`<a class="lk ${url?"":"off"}" ${url?`href="${esc(url)}" target="_blank" rel="noopener"`:""} title="${kind}">${svg}</a>`;
-  return `<div class="row ${t.completed?"done":""}" data-id="${t.id}">
+  return `<div class="row ${t.completed?"done":""} ${t.revision?"rev":""}" data-id="${t.id}">
     <input type="checkbox" class="cb" data-act="toggle" ${t.completed?"checked":""}>
     <div class="cli"><span class="abbr">${esc(c.abbr)}</span><div style="min-width:0"><div class="cli-name">${esc(c.name)}</div></div></div>
     <span class="cat-cell"><span class="catb"><span class="cdot" style="background:${catColor(c.cat)}"></span>${esc(catLabel(c.cat))}</span></span>
     <span class="type-cell"><span class="tbadge"><span class="cdot" style="background:${typeColor(t.type)}"></span>${esc(tp.label)}</span></span>
     ${dueCell}
     <div style="min-width:0">
+      ${t.revision?`<span class="revtag">⟲ Needs revision</span>`:""}
       ${(t.assignee||t.projectName)?`<div class="nhead">${assigneeAvatar(t)}${t.projectName?`<span class="ptitle">${esc(t.projectName)}</span>`:""}</div>`:""}
       <div class="notes ${t.notes?"":"empty"}">${t.notes?esc(t.notes):"No notes"}</div>
       <div class="links">
@@ -1366,6 +1439,7 @@ function rowHTML(t){
     </div>
     <div class="rowacts">
       ${(t.type==="daily"||t.type==="longform")?`<button class="ic deliv ${t.delivered?"on":""}" data-act="deliv" title="${t.delivered?"Delivered to Slack — click to unmark":"Mark delivered to Slack"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>`:""}
+      <button class="ic rev ${t.revision?"on":""}" data-act="rev" title="${t.revision?"Clear revision":"Mark needs revision"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg></button>
       <button class="ic" data-act="dup" title="Duplicate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
       <button class="ic" data-act="edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
       <button class="ic del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
@@ -1377,6 +1451,7 @@ function bindRows(scope){
     const id=r.dataset.id;
     r.querySelector('[data-act="toggle"]')?.addEventListener("change",()=>toggleDone(id));
     r.querySelector('[data-act="deliv"]')?.addEventListener("click",()=>toggleDelivered(id));
+    r.querySelector('[data-act="rev"]')?.addEventListener("click",()=>toggleRevision(id));
     r.querySelector('[data-act="dup"]')?.addEventListener("click",()=>dupTask(id));
     r.querySelector('[data-act="edit"]')?.addEventListener("click",()=>openEdit(id));
     r.querySelector('[data-act="del"]')?.addEventListener("click",()=>delTask(id));
@@ -1415,6 +1490,11 @@ async function toggleDelivered(id){
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
   await backend.upsertTask({...t,delivered:!t.delivered});touchActivity();refreshUI();toast(!t.delivered?"Marked delivered":"Delivery unmarked");
 }
+async function toggleRevision(id){
+  if(state.locked)return;
+  const t=state.tasks.find(x=>x.id===id);if(!t)return;
+  await backend.upsertTask({...t,revision:!t.revision});touchActivity();refreshUI();toast(!t.revision?"Flagged for revision":"Revision cleared");
+}
 async function dupTask(id){
   if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
@@ -1440,6 +1520,7 @@ function syncDueRow(){
   $("#dueRow").classList.toggle("hidden",!TYPE_MAP[curType].due);
   const dr=$("#deliverRow");if(dr)dr.classList.toggle("hidden",!(curType==="daily"||curType==="longform"));
   const rr=$("#recurRow");if(rr)rr.classList.toggle("hidden",!film);
+  const rvr=$("#revRow");if(rvr)rvr.classList.toggle("hidden",film);
   const dl=$("#dueLbl");if(dl)dl.textContent=film?"Film Date":"Due Date";
   const dh=$("#dueHint");if(dh)dh.style.display=film?"none":"";
   const al=$("#asgLbl");if(al)al.innerHTML=(film?"Shooter":"Editor")+' <span class="opt">— optional</span>';
@@ -1457,7 +1538,7 @@ function openAdd(prefillDate,prefillClient){
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   if(prefillClient)$("#fClient").value=prefillClient;
   $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
-  $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";
+  $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";
   $("#addScrim").classList.add("open");
 }
@@ -1519,7 +1600,7 @@ function openEdit(id){
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
-  const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";
+  const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;
   const de=$("#dupEntry");if(de)de.style.display="";
   $("#addScrim").classList.add("open");
 }
@@ -1528,7 +1609,7 @@ async function saveEntry(){
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
-  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none"};
+  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false};
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
@@ -1659,6 +1740,31 @@ function settingsHTML(){
         </div>
       </div>
       <div class="card set-card set-wide">
+        <div class="card-h">Admin controls${state.admin?" · unlocked":""}</div>
+        <div class="set-add">
+          ${state.admin ? `
+          <div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn primary" id="admForce">Force all sessions to reload now</button>
+            <button class="btn" id="admRepub">Re-publish v${APP_VERSION}</button>
+            <button class="btn" id="admLock">Lock admin</button>
+          </div>
+          <div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+            <input class="inp" id="admPw" type="password" placeholder="${ADMIN_HASH?"Change admin password":"Set admin password"}" autocomplete="new-password" style="flex:1 1 200px">
+            <button class="btn" id="admSet">${ADMIN_HASH?"Change":"Set"} password</button>
+          </div>
+          <span class="set-hint">“Force all sessions to reload” instantly refreshes every open copy running v${APP_VERSION} or newer, anywhere in the world. Copies opened before auto-update existed must be hard-refreshed once by hand.</span>
+          ` : (ADMIN_HASH ? `
+          <input class="inp" id="admEnter" type="password" placeholder="Admin password" autocomplete="off" style="flex:1 1 200px">
+          <button class="btn primary" id="admUnlock">Unlock admin</button>
+          <span class="set-hint">Enter the secret admin password to access manual overrides like forcing every session worldwide to reload.</span>
+          ` : `
+          <input class="inp" id="admPw" type="password" placeholder="Create a secret admin password" autocomplete="new-password" style="flex:1 1 200px">
+          <button class="btn primary" id="admSet">Create admin password</button>
+          <span class="set-hint">Set a private admin password to unlock manual overrides — force-reload all sessions worldwide and re-publish the current version. Keep it secret.</span>
+          `)}
+        </div>
+      </div>
+      <div class="card set-card set-wide">
         <div class="card-h">Weekly standup report</div>
         <div class="set-add">
           <input class="inp" id="repTo" type="email" placeholder="To — Tyler\u2019s email" value="${esc(REPORT_RECIP[0]||"")}" style="flex:1 1 200px">
@@ -1681,6 +1787,13 @@ function settingsHTML(){
           <select class="inp" id="tzSel" style="flex:1 1 240px">${tzOptionsHTML()}</select>
           <div class="tz-now" id="tzNow">${esc(fmtTZNow())}</div>
           <span class="set-hint">Everyone shares this zone for “today”, due dates, and missed-post logic — independent of each device’s clock. Change it if your team’s day should roll over somewhere other than ${esc(projTZ())}.</span>
+        </div>
+      </div>
+      <div class="card set-card set-wide">
+        <div class="card-h">Reschedule conflict alerts</div>
+        <div class="set-add">
+          <label class="chk"><input type="checkbox" id="hideConflict" ${LS.get("acc_hide_conflict",false)?"checked":""}> Silence the “reschedule was reverted” warning</label>
+          <span class="set-hint">This only hides the message. If a move keeps reverting, an older copy of the app is still open somewhere — refresh every tab and device to v${APP_VERSION} to actually fix it.</span>
         </div>
       </div>
       <div class="ver-foot">Anomaly Pipeline · v${APP_VERSION} · built ${APP_BUILD}</div>
@@ -1771,7 +1884,14 @@ function bindSettings(scope){
   const rsb=$("#repSave");if(rsb)rsb.onclick=setReportRecip;
   const jsb=$("#jarSave");if(jsb)jsb.onclick=setJarvisEndpoint;
   const tzs=$("#tzSel");if(tzs)tzs.onchange=()=>setTimezone(tzs.value);
+  const hc=$("#hideConflict");if(hc)hc.onchange=()=>{LS.set("acc_hide_conflict",hc.checked);toast(hc.checked?"Conflict warnings hidden":"Conflict warnings on");};
   const spw=$("#secPw");if(spw)spw.onkeydown=e=>{if(e.key==="Enter")setPassword();};
+  const au=$("#admUnlock");if(au)au.onclick=tryAdminUnlock;
+  const ae=$("#admEnter");if(ae)ae.onkeydown=e=>{if(e.key==="Enter")tryAdminUnlock();};
+  const aset=$("#admSet");if(aset)aset.onclick=setAdminPw;
+  const aforce=$("#admForce");if(aforce)aforce.onclick=adminForceReloadAll;
+  const arep=$("#admRepub");if(arep)arep.onclick=adminRepublish;
+  const alock=$("#admLock");if(alock)alock.onclick=adminLock;
   scope.querySelectorAll(".set-row[data-ed]").forEach(r=>{const nm=r.dataset.ed;
     r.querySelector('[data-act="edcolor"]').onchange=async e=>{const ed=EDITORS_LIST.find(x=>x.name===nm);if(ed){ed.color=e.target.value;await backend.saveEditors();afterConfigChange();}};
     r.querySelector('[data-act="edrm"]').onclick=async ()=>{if(!confirm(`Remove editor ${nm}?`))return;EDITORS_LIST=EDITORS_LIST.filter(x=>x.name!==nm);await backend.saveEditors();afterConfigChange();toast("Editor removed");};
