@@ -98,6 +98,53 @@ body.locked .cchip-rev{display:none}
 .ic.rev.on{color:var(--rev);background:rgba(208,99,30,.12)}
 .tab.revtab{background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(208,99,30,.13) 6px 12px)}
 .tab.revtab.active{background:var(--rev);color:#fff}
+.pagenav{max-width:calc(100vw - 16px);overflow-x:auto;overflow-y:hidden}
+.pnav{padding:8px 16px;min-width:66px}
+@media(max-width:760px){.pnav{padding:7px 11px}.pnav span{font-size:9px}}
+.bd-wrap{max-width:1120px;margin:0 auto;padding:4px 2px 48px}
+.bd-head h2{margin:0 0 2px;font-family:Outfit,sans-serif;font-size:22px}
+.bd-head p{margin:0 0 14px;color:var(--muted);font-size:13px;max-width:660px}
+.bd-composer{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.bd-composer #bdInput{flex:1 1 320px}
+.bd-composer .bd-asg{flex:0 0 180px}
+.bd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px;align-items:start}
+.bd-note{background:#fdf7cf;border:1px solid #ecdf9e;border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:7px;box-shadow:0 2px 7px rgba(80,70,20,.10)}
+[data-theme="dark"] .bd-note{background:#3a392b;border-color:#54513b;box-shadow:none}
+.bd-top{display:flex;align-items:center;gap:7px}
+.bd-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--sage);background:transparent;cursor:pointer;flex:0 0 auto;position:relative;padding:0}
+.bd-check:hover{background:rgba(146,171,167,.3)}
+.bd-check.on{background:var(--sage);border-color:var(--sage)}
+.bd-check.on::after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.bd-assign{flex:1 1 auto;font-size:11px;padding:3px 5px;border:1px solid rgba(0,0,0,.14);border-radius:6px;background:rgba(255,255,255,.55);color:inherit;max-width:150px}
+[data-theme="dark"] .bd-assign{background:rgba(0,0,0,.22);border-color:rgba(255,255,255,.15)}
+.bd-title{border:none;background:transparent;font-weight:700;font-size:14px;color:inherit;width:100%;padding:0;font-family:inherit}
+.bd-title:focus{outline:none;border-bottom:1px solid rgba(0,0,0,.22)}
+.bd-notes{border:none;background:rgba(255,255,255,.45);border-radius:6px;font-size:12px;color:inherit;width:100%;resize:vertical;padding:5px 6px;font-family:inherit;min-height:34px;line-height:1.4}
+[data-theme="dark"] .bd-notes{background:rgba(0,0,0,.2)}
+.bd-notes:focus{outline:1.5px solid var(--sage)}
+.bd-acts{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:1px}
+.bd-btn.convert{font-size:11px;font-weight:700;color:var(--sage-800);background:rgba(146,171,167,.22);border:1px solid rgba(146,171,167,.5);border-radius:6px;padding:3px 9px;cursor:pointer}
+.bd-btn.convert:hover{background:rgba(146,171,167,.42)}
+.bd-acts .ic.del{width:26px;height:26px}
+.bd-empty{color:var(--muted);font-size:13px;padding:34px 6px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+.bd-done{margin-top:24px}
+.bd-done>summary{cursor:pointer;color:var(--muted);font-size:12px;font-weight:700;list-style:none;padding:6px 2px;letter-spacing:.02em}
+.bd-done>summary::-webkit-details-marker{display:none}
+.bd-done>summary::before{content:"\25B8 ";}
+.bd-done[open]>summary::before{content:"\25BE ";}
+.bd-done-list{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.bd-done-row{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);padding:4px 6px;border-radius:6px}
+.bd-done-row:hover{background:var(--canvas)}
+.bd-done-txt{flex:1;text-decoration:line-through;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-done-asg{font-size:10px;opacity:.7;text-transform:capitalize}
+.bd-done-row .bd-check{width:14px;height:14px}
+.bd-done-row .bd-check.on::after{left:3px;top:0;width:4px;height:7px}
+.soon-wrap{display:flex;align-items:center;justify-content:center;min-height:52vh;padding:30px}
+.soon-card{text-align:center;max-width:430px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:36px 30px;box-shadow:var(--shadow-lg)}
+.soon-ic{width:52px;height:52px;margin:0 auto 14px;color:var(--sage)}
+.soon-card h2{margin:0 0 6px;font-family:Outfit,sans-serif;font-size:24px}
+.soon-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sage-800);background:rgba(146,171,167,.2);border-radius:999px;padding:3px 12px;margin:0 0 14px}
+.soon-card p{color:var(--muted);font-size:14px;line-height:1.55;margin:0}
 .cal-nodate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);background:var(--canvas)}
 .cal-nodate .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .cal-nodate .cchip{width:auto}
@@ -602,6 +649,8 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
   <button class="pnav" data-view="calendar" title="Calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Calendar</span></button>
   <button class="pnav" data-view="dashboard" title="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span>Dashboard</span></button>
   <button class="pnav" data-view="filming" title="Footage Runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Filming</span></button>
+  <button class="pnav" data-view="delivery" title="Delivery Panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg><span>Delivery</span></button>
+  <button class="pnav" data-view="braindump" title="Brain Dump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/></svg><span>Brain Dump</span></button>
   <button class="pnav" data-view="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
 </nav>
 
@@ -687,6 +736,7 @@ const DEFAULT_TYPES=[
   {id:"batch",label:"Batch",due:true,color:"#9a8a5f"},
   {id:"listings",label:"Listings",due:true,color:"#5f9a76"},
   {id:"filming",label:"Footage Runs",due:true,color:"#c2607a"},
+  {id:"braindump",label:"Brain Dump",due:false,color:"#8b7fb0"},
 ];
 const DEFAULT_CATS=[
   {key:"services",label:"Services",color:"#92ABA7"},
@@ -879,7 +929,7 @@ function initLocal(){
   REPORT_RECIP=LS.get(LK_REPORT,[])||[];
   JARVIS_ENDPOINT=LS.get(LK_JARVIS,"")||"";
   PROJECT_TZ=LS.get(LK_TZ,"")||"";
-  rebuildConfigUI(); ensureDailyDue(); ensureFilmingType(); setSyncStatus("local"); refreshUI(); refreshLock();
+  rebuildConfigUI(); ensureDailyDue(); ensureFilmingType();ensureBraindumpType(); setSyncStatus("local"); refreshUI(); refreshLock();
 }
 async function initFirebase(){
   setSyncStatus("connecting");
@@ -897,7 +947,7 @@ async function initFirebase(){
     if(!have.has("appversion"))await FBSDK.setDoc(doc(db,"config","appversion"),{list:[APP_VERSION,""]});
     onSnapshot(collection(db,"config"),s=>{
       s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
-      rebuildConfigUI();ensureDailyDue();ensureFilmingType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
+      rebuildConfigUI();ensureDailyDue();ensureFilmingType();ensureBraindumpType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
     onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
@@ -906,6 +956,11 @@ async function initFirebase(){
 async function ensureFilmingType(){
   if(TYPES.find(t=>t.id==="filming"))return;
   TYPES.push({id:"filming",label:"Footage Runs",due:true,color:"#c2607a"});
+  rebuildTypeMaps();rebuildConfigUI();try{await backend.saveTypes();}catch(e){}
+}
+async function ensureBraindumpType(){
+  if(TYPES.find(t=>t.id==="braindump"))return;
+  TYPES.push({id:"braindump",label:"Brain Dump",due:false,color:"#8b7fb0"});
   rebuildTypeMaps();rebuildConfigUI();try{await backend.saveTypes();}catch(e){}
 }
 function addCadence(ds,recur){
@@ -936,7 +991,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.0.8", APP_BUILD="2026-06-22";
+const APP_VERSION="1.0.9", APP_BUILD="2026-06-23";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -974,13 +1029,13 @@ function buildEditorSelects(){
 }
 function buildTabs(){
   const el=$("#tabs");
-  const tabs=[{id:"master",label:"Master"}].concat(TYPES.filter(t=>t.id!=="filming").map(t=>({id:t.id,label:t.label})));
+  const tabs=[{id:"master",label:"Master"}].concat(TYPES.filter(t=>t.id!=="filming"&&t.id!=="braindump").map(t=>({id:t.id,label:t.label})));
   tabs.push({id:"__rev",label:"Revisions"});
   el.innerHTML=tabs.map(t=>`<button class="tab${t.id==="master"?" master":""}${t.id==="__rev"?" revtab":""}${t.id===state.tab?" active":""}" data-tab="${t.id}">${t.label}<span class="ct" data-ct="${t.id}">0</span></button>`).join("");
   el.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.quick=null;buildTabs();render();});
 }
 function updateCounts(){
-  const active=state.tasks.filter(t=>!t.completed&&t.type!=="filming");
+  const active=state.tasks.filter(t=>!t.completed&&t.type!=="filming"&&t.type!=="braindump");
   TYPES.forEach(t=>{const e=document.querySelector(`[data-ct="${t.id}"]`);if(e)e.textContent=active.filter(x=>x.type===t.id).length;});
   const m=document.querySelector('[data-ct="master"]');if(m)m.textContent=active.length;
   const rv=document.querySelector('[data-ct="__rev"]');if(rv)rv.textContent=active.filter(x=>x.revision).length;
@@ -1006,10 +1061,10 @@ function sortTasks(arr){
 function render(){
   updateCounts();
   const ctrls=document.querySelector(".controls");
-  if(ctrls)ctrls.style.display=(state.view==="dashboard"||state.view==="settings"||state.view==="filming")?"none":"";
+  if(ctrls)ctrls.style.display=(state.view==="dashboard"||state.view==="settings"||state.view==="filming"||state.view==="delivery"||state.view==="braindump")?"none":"";
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
-  let pool=state.tasks.filter(t=>t.type!=="filming"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
+  let pool=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
   if(state.tab==="__rev")pool=pool.filter(t=>t.revision);
   else if(state.tab!=="master")pool=pool.filter(t=>t.type===state.tab);
   const activeRaw=pool.filter(t=>!t.completed);
@@ -1019,6 +1074,8 @@ function render(){
   if(compSec)compSec.style.display=(state.view==="list"&&state.quick!=="completed")?"":"none";
   if(state.view==="settings"){board.innerHTML=settingsHTML();bindSettings(board);}
   else if(state.view==="filming"){board.innerHTML=filmingHTML();bindFilming(board);}
+  else if(state.view==="delivery"){board.innerHTML=deliveryHTML();}
+  else if(state.view==="braindump"){board.innerHTML=braindumpHTML();bindBraindump(board);}
   else if(state.view==="dashboard"){board.innerHTML=dashboardHTML();}
   else if(state.view==="calendar"){
     const now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1;
@@ -1098,7 +1155,7 @@ function calLegend(){
     items=[["var(--red)","Overdue"],["var(--amber)","Due soon (≤3 days)"],["var(--sage)","This week"],["#6b7fa8","Later"],["#b8bcba","No date"]];
   }else{
     title="Edit type";
-    items=TYPES.map(tp=>[tp.color,tp.label]);
+    items=TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>[tp.color,tp.label]);
   }
   return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span></div>`;
 }
@@ -1228,7 +1285,7 @@ function bindCalendar(scope){
 
 /* ============ dashboard ============ */
 function dashboardHTML(){
-  const all=state.tasks.filter(t=>t.type!=="filming"), active=all.filter(t=>!t.completed);
+  const all=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"), active=all.filter(t=>!t.completed);
   const over=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days<0).length;
   const soon=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days>=0&&dueInfo(t.dueDate).days<=6).length;
   const dailies=active.filter(t=>t.type==="daily").length;
@@ -1512,7 +1569,7 @@ async function delTask(id){
 /* ============ add/edit ============ */
 let curType="longform";
 function buildTypePick(){
-  $("#typePick").innerHTML=TYPES.map(t=>`<button class="tp${t.id===curType?" sel":""}" data-tp="${t.id}">${t.label}</button>`).join("");
+  $("#typePick").innerHTML=TYPES.filter(t=>t.id!=="braindump").map(t=>`<button class="tp${t.id===curType?" sel":""}" data-tp="${t.id}">${t.label}</button>`).join("");
   $("#typePick").querySelectorAll(".tp").forEach(b=>b.onclick=()=>{curType=b.dataset.tp;buildTypePick();syncDueRow();});
 }
 function syncDueRow(){
@@ -1556,6 +1613,81 @@ function bizDaysUntil(ds){
   let n=0,d=new Date(today);
   while(d<due){d.setDate(d.getDate()+1);const wd=d.getDay();if(wd!==0&&wd!==6)n++;}
   return n;
+}
+function deliveryHTML(){
+  return `<div class="soon-wrap"><div class="soon-card">
+    <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg></div>
+    <h2>Delivery Panel</h2>
+    <div class="soon-tag">Coming soon</div>
+    <p>A dedicated space to track final exports, client hand-offs, and delivery status across every project. We're building this next.</p>
+  </div></div>`;
+}
+function bdEdOpts(name){return `<option value="">\u2014 unassigned \u2014</option>`+EDITORS_LIST.map(e=>`<option value="${esc(e.name)}" ${e.name===name?"selected":""}>${esc(e.name)}</option>`).join("");}
+function braindumpHTML(){
+  const dis=state.locked?"disabled":"";
+  const items=state.tasks.filter(t=>t.type==="braindump");
+  const active=items.filter(t=>!t.completed).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const done=items.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+  const composer=`<div class="bd-composer">
+    <input id="bdInput" class="inp" placeholder="Jot a quick task or note\u2026" ${dis}>
+    <select id="bdAsg" class="inp bd-asg" ${dis}>${bdEdOpts("")}</select>
+    <button class="btn primary" id="bdAdd" ${dis}>Add</button>
+  </div>`;
+  const card=t=>`<div class="bd-note" data-id="${t.id}">
+      <div class="bd-top">
+        <button class="bd-check" data-act="done" title="Mark complete" ${dis}></button>
+        <select class="bd-assign" data-act="assign" title="Assign to" ${dis}>${bdEdOpts(t.assignee)}</select>
+      </div>
+      <input class="bd-title" data-act="title" value="${esc(t.projectName||"")}" placeholder="Task\u2026" ${dis}>
+      <textarea class="bd-notes" data-act="notes" placeholder="Notes\u2026" rows="2" ${dis}>${esc(t.notes||"")}</textarea>
+      <div class="bd-acts">
+        <button class="bd-btn convert" data-act="convert" title="Turn into a tracked deliverable for List / Calendar" ${dis}>\u2197 Convert</button>
+        <button class="ic del" data-act="del" title="Delete" ${dis}>${TRASH}</button>
+      </div>
+    </div>`;
+  const grid=active.length?`<div class="bd-grid">${active.map(card).join("")}</div>`
+    :`<div class="bd-empty">No notes yet \u2014 jot something above. Brain-dump tasks live here until you check them off or convert them into deliverables.</div>`;
+  const doneSec=done.length?`<details class="bd-done"><summary>Done (${done.length})</summary><div class="bd-done-list">${done.map(t=>`<div class="bd-done-row" data-id="${t.id}"><button class="bd-check on" data-act="done" title="Reopen" ${state.locked?"disabled":""}></button><span class="bd-done-txt">${esc(t.projectName||"(untitled)")}</span>${t.assignee?`<span class="bd-done-asg">${esc(t.assignee)}</span>`:""}<button class="ic del" data-act="del" title="Delete" ${state.locked?"disabled":""}>${TRASH}</button></div>`).join("")}</div></details>`:"";
+  return `<div class="bd-wrap">
+    <div class="bd-head"><h2>Brain Dump</h2><p>Sticky notes for quick, assignable tasks. Check them off, leave notes, or convert any note into a tracked deliverable that shows up in List and Calendar.</p></div>
+    ${composer}${grid}${doneSec}
+  </div>`;
+}
+function bindBraindump(scope){
+  const add=scope.querySelector("#bdAdd");if(add)add.onclick=addSticky;
+  const inp=scope.querySelector("#bdInput");if(inp)inp.onkeydown=e=>{if(e.key==="Enter")addSticky();};
+  scope.querySelectorAll(".bd-note,.bd-done-row").forEach(n=>{
+    const id=n.dataset.id;
+    n.querySelector('[data-act="done"]')?.addEventListener("click",()=>{if(state.locked)return;toggleDone(id);});
+    n.querySelector('[data-act="del"]')?.addEventListener("click",()=>delSticky(id));
+    n.querySelector('[data-act="convert"]')?.addEventListener("click",()=>convertSticky(id));
+    const asg=n.querySelector('[data-act="assign"]');if(asg)asg.onchange=()=>assignSticky(id,asg.value);
+    const tt=n.querySelector('[data-act="title"]');if(tt){tt.onchange=()=>saveStickyField(id,"projectName",tt.value);tt.onkeydown=e=>{if(e.key==="Enter")tt.blur();};}
+    const nt=n.querySelector('[data-act="notes"]');if(nt)nt.onchange=()=>saveStickyField(id,"notes",nt.value);
+  });
+}
+async function addSticky(){
+  if(state.locked)return;
+  const inp=$("#bdInput");if(!inp)return;const text=inp.value.trim();if(!text)return;
+  const asg=$("#bdAsg")?$("#bdAsg").value:"";
+  const t={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:"braindump",clientAbbr:"",projectName:text,assignee:asg,notes:"",completed:false,completedAt:null,createdAt:Date.now()};
+  await backend.upsertTask(t);inp.value="";touchActivity();refreshUI();toast("Added to brain dump");
+}
+async function assignSticky(id,name){if(state.locked)return;const t=state.tasks.find(x=>x.id===id);if(!t)return;await backend.upsertTask({...t,assignee:name});touchActivity();}
+async function saveStickyField(id,field,val){if(state.locked)return;const t=state.tasks.find(x=>x.id===id);if(!t)return;const v=(typeof val==="string")?val.trim():val;if((t[field]||"")===v)return;await backend.upsertTask({...t,[field]:v});touchActivity();}
+async function delSticky(id){if(state.locked)return;const t=state.tasks.find(x=>x.id===id);if(!t)return;if(!confirm("Delete this note?"))return;await backend.removeTask(id);refreshUI();toast("Deleted");}
+function convertSticky(id){
+  if(state.locked)return;
+  const t=state.tasks.find(x=>x.id===id);if(!t)return;
+  const dt=TYPES.find(x=>x.id==="longform")||TYPES.find(x=>x.due&&x.id!=="filming"&&x.id!=="braindump")||TYPES.find(x=>x.id!=="filming"&&x.id!=="braindump")||TYPES[0];
+  curType=dt?dt.id:"longform";
+  $("#editId").value=id;$("#addTitle").textContent="Convert to deliverable";
+  buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
+  $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value="";
+  $("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value=t.notes||"";
+  const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;
+  const de=$("#dupEntry");if(de)de.style.display="none";
+  $("#addScrim").classList.add("open");
 }
 function filmingHTML(){
   const runs=state.tasks.filter(t=>t.type==="filming");
@@ -1720,7 +1852,7 @@ function settingsHTML(){
     <div class="card set-card set-wide">
       <div class="card-h">Edit Types <span class="set-count">${TYPES.length}</span></div>
       <div class="set-add"><input class="inp" id="typLabel" placeholder="New edit type"><input type="color" class="swatch" id="typColor" value="#6b7fa8"><label class="set-due"><input type="checkbox" id="typDue" checked> Due date</label><button class="btn primary" id="typAdd">Add</button></div>
-      <div class="set-list">${TYPES.map(tp=>{const u=state.tasks.filter(t=>t.type===tp.id).length;return `<div class="set-row" data-typ="${esc(tp.id)}"><input type="color" class="swatch" data-act="tcolor" value="${tp.color}"><input class="inp set-inp" data-act="tlabel" value="${esc(tp.label)}"><label class="set-due"><input type="checkbox" data-act="tdue" ${tp.due?"checked":""}> Uses due date</label><span class="set-used">${u} entr${u===1?"y":"ies"}</span><button class="ic del" data-act="trm" title="Remove" ${(u||TYPES.length<=1)?"disabled":""}>${TRASH}</button></div>`;}).join("")}</div>
+      <div class="set-list">${TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>{const u=state.tasks.filter(t=>t.type===tp.id).length;return `<div class="set-row" data-typ="${esc(tp.id)}"><input type="color" class="swatch" data-act="tcolor" value="${tp.color}"><input class="inp set-inp" data-act="tlabel" value="${esc(tp.label)}"><label class="set-due"><input type="checkbox" data-act="tdue" ${tp.due?"checked":""}> Uses due date</label><span class="set-used">${u} entr${u===1?"y":"ies"}</span><button class="ic del" data-act="trm" title="Remove" ${(u||TYPES.length<=1)?"disabled":""}>${TRASH}</button></div>`;}).join("")}</div>
     </div>
       <div class="card set-card set-wide">
         <div class="card-h">Data &amp; Backup</div>
