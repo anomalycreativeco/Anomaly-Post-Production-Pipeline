@@ -145,6 +145,47 @@ body.locked .cchip-rev{display:none}
 .soon-card h2{margin:0 0 6px;font-family:Outfit,sans-serif;font-size:24px}
 .soon-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sage-800);background:rgba(146,171,167,.2);border-radius:999px;padding:3px 12px;margin:0 0 14px}
 .soon-card p{color:var(--muted);font-size:14px;line-height:1.55;margin:0}
+.bell-btn{position:relative}
+.bell-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 2px var(--paper)}
+.bell-btn.signed{color:var(--sage-800)}
+.bell-scrim{position:fixed;inset:0;background:rgba(15,20,22,.34);opacity:0;pointer-events:none;transition:.2s;z-index:60;display:flex;justify-content:flex-end}
+.bell-scrim.open{opacity:1;pointer-events:auto}
+.bell-panel{width:382px;max-width:92vw;height:100%;background:var(--paper);box-shadow:-12px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;overflow:hidden;transform:translateX(24px);transition:.22s}
+.bell-scrim.open .bell-panel{transform:none}
+.bell-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.bell-title{font-family:Outfit,sans-serif;font-size:18px;font-weight:700}
+.bell-x{border:none;background:transparent;font-size:24px;line-height:1;color:var(--muted);cursor:pointer;padding:0 4px}
+.bell-x:hover{color:var(--ink)}
+.bell-id{padding:14px 18px;border-bottom:1px solid var(--line)}
+.bell-signin-q{font-weight:700;font-size:14px;margin-bottom:8px}
+.bell-signin .inp{width:100%;margin-bottom:8px}
+.bell-signin .btn{width:100%}
+.bell-signin-note{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45}
+.bell-me{display:flex;align-items:center;gap:10px}
+.bell-me .ava{width:34px;height:34px;font-size:13px}
+.bell-me-tx{flex:1;min-width:0}
+.bell-me-name{font-weight:700;font-size:15px;text-transform:capitalize}
+.bell-me-sub{font-size:11px;color:var(--muted)}
+.bell-out{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.bell-out:hover{border-color:var(--red);color:var(--red)}
+.bell-only{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--ink);cursor:pointer}
+.bell-body{flex:1;overflow-y:auto;padding:8px 12px 24px}
+.bell-empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 10px;line-height:1.5}
+.bell-sec{margin-top:12px}
+.bell-sec-h{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:4px 6px;display:flex;gap:6px;align-items:center}
+.bell-sec-h span{background:var(--canvas);border-radius:8px;padding:0 6px;font-size:10px}
+.bell-sec.over .bell-sec-h{color:var(--red)}
+.bell-sec.today .bell-sec-h{color:var(--sage-800)}
+.bell-row{display:flex;align-items:center;gap:9px;padding:8px;border-radius:9px;cursor:pointer}
+.bell-row:hover{background:var(--canvas)}
+.bell-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--sage);background:transparent;cursor:pointer;flex:0 0 auto;position:relative;padding:0}
+.bell-check:hover{background:rgba(146,171,167,.3)}
+.bell-tcol{width:4px;height:18px;border-radius:3px;flex:0 0 auto}
+.bell-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
+.bell-pill{flex:0 0 auto;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:7px;background:var(--canvas);color:var(--muted)}
+.bell-pill.over{background:rgba(192,57,43,.14);color:var(--red)}
+.bell-pill.today,.bell-pill.soon{background:rgba(146,171,167,.2);color:var(--sage-800)}
+@media(max-width:760px){.bell-panel{width:100%;max-width:100%}}
 .cal-nodate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);background:var(--canvas)}
 .cal-nodate .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .cal-nodate .cchip{width:auto}
@@ -587,6 +628,7 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
   <span class="ver-badge" id="verBadge" title=""></span>
   <div class="spacer"></div>
   <button class="btn icon-only" id="lockBtn" title="View only" aria-label="Lock state" style="display:none"></button>
+  <button class="btn icon-only bell-btn" id="bellBtn" title="My to-do" aria-label="My to-do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-badge" id="bellBadge" style="display:none">0</span></button>
   <button class="btn icon-only" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme"></button>
 </div>
 
@@ -703,6 +745,14 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
       <div class="lock-err" id="lockErr"></div>
     </div>
     <div class="mf"><button class="btn" id="lockCancel">Just viewing</button><button class="btn primary" id="lockGo">Unlock editing</button></div>
+  </div>
+</div>
+
+<div class="bell-scrim" id="bellScrim">
+  <div class="bell-panel">
+    <div class="bell-head"><div class="bell-title">My To-Do</div><button class="bell-x" id="bellClose" aria-label="Close">&times;</button></div>
+    <div class="bell-id" id="bellId"></div>
+    <div class="bell-body" id="bellBody"></div>
   </div>
 </div>
 
@@ -853,6 +903,7 @@ function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<
 
 /* ===== auto-update + admin ===== */
 let ADMIN_HASH=null, APPVER_NONCE=null;
+let ME="";
 function cmpVer(a,b){const pa=String(a).split(".").map(n=>parseInt(n,10)||0),pb=String(b).split(".").map(n=>parseInt(n,10)||0);for(let i=0;i<Math.max(pa.length,pb.length);i++){const x=pa[i]||0,y=pb[i]||0;if(x>y)return 1;if(x<y)return -1;}return 0;}
 function forceReload(tag){
   let prev=null; try{prev=sessionStorage.getItem("acc_reloaded_for");}catch(e){}
@@ -906,6 +957,7 @@ async function init(){
   const savedView=LS.get(LK_VIEW,"list")||"list"; state.view=savedView;
   document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===savedView));
   try{state.admin=sessionStorage.getItem("acc_admin")==="1";}catch(e){}
+  ME=LS.get("acc_me","")||""; if(ME&&LS.get("acc_personal",true))state.assignee=ME;
   if(USE_FB) await initFirebase();
   else initLocal();
 }
@@ -991,7 +1043,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.0.9", APP_BUILD="2026-06-23";
+const APP_VERSION="1.1.0", APP_BUILD="2026-06-23";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1103,6 +1155,7 @@ function render(){
   const cb=$("#compBody");
   cb.innerHTML=done.length?tableHTML(done):`<div class="empty"><div>Nothing completed yet.</div></div>`;
   bindRows(cb);
+  syncAsgSelect(); updateBell(); if(document.querySelector("#bellScrim")&&document.querySelector("#bellScrim").classList.contains("open"))renderBellBody();
 }
 function statsStrip(active,doneCount){
   const over=active.filter(t=>TYPE_MAP[t.type].due&&t.dueDate&&dueInfo(t.dueDate).days<0).length;
@@ -1614,6 +1667,55 @@ function bizDaysUntil(ds){
   while(d<due){d.setDate(d.getDate()+1);const wd=d.getDay();if(wd!==0&&wd!==6)n++;}
   return n;
 }
+function syncAsgSelect(){const sel=document.querySelector("#asgFilter");if(sel)sel.value=state.assignee;}
+function myOpenTasks(){if(!ME)return [];return state.tasks.filter(t=>t.assignee===ME&&!t.completed);}
+function bellActionCount(){if(!ME)return 0;const today=todayStr();return myOpenTasks().filter(t=>{const tp=TYPE_MAP[t.type];return tp&&tp.due&&t.dueDate&&t.dueDate<=today;}).length;}
+function updateBell(){
+  const btn=document.querySelector("#bellBtn"); if(btn)btn.classList.toggle("signed",!!ME);
+  const b=document.querySelector("#bellBadge"); if(!b)return;
+  const n=bellActionCount();
+  if(ME&&n>0){b.textContent=n>99?"99+":String(n);b.style.display="";}else b.style.display="none";
+}
+function openBell(){renderBellId();renderBellBody();document.querySelector("#bellScrim").classList.add("open");}
+function closeBell(){const sc=document.querySelector("#bellScrim");if(sc)sc.classList.remove("open");}
+function renderBellId(){
+  const el=document.querySelector("#bellId"); if(!el)return;
+  if(ME){
+    const personal=state.assignee===ME;
+    el.innerHTML=`<div class="bell-me"><span class="ava" style="background:${editorColor(ME)}">${esc(ME.slice(0,2))}</span><div class="bell-me-tx"><div class="bell-me-name">${esc(ME)}</div><div class="bell-me-sub">Signed in on this device</div></div><button class="bell-out" id="bellSignout">Sign out</button></div>
+      <label class="bell-only"><input type="checkbox" id="bellPersonal" ${personal?"checked":""}> Show only my tasks in List &amp; Calendar</label>`;
+  }else{
+    const opts=`<option value="">\u2014 choose your name \u2014</option>`+editorNames().map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    el.innerHTML=`<div class="bell-signin"><div class="bell-signin-q">Who are you?</div><select class="inp" id="bellPick">${opts}</select><button class="btn primary" id="bellGo">Sign in</button><div class="bell-signin-note">Pick your name to get a personal to-do list and a view filtered to just your work. Saved on this device only \u2014 no password needed.</div></div>`;
+  }
+}
+function renderBellBody(){
+  const el=document.querySelector("#bellBody"); if(!el)return;
+  if(!ME){el.innerHTML=`<div class="bell-empty">Sign in above to see your personal to-do list.</div>`;return;}
+  const today=todayStr(), mine=myOpenTasks();
+  const dated=mine.filter(t=>{const tp=TYPE_MAP[t.type];return tp&&tp.due&&t.dueDate;});
+  const over=dated.filter(t=>t.dueDate<today).sort((a,b)=>a.dueDate<b.dueDate?-1:1);
+  const tod=dated.filter(t=>t.dueDate===today);
+  const up=dated.filter(t=>t.dueDate>today).sort((a,b)=>a.dueDate<b.dueDate?-1:1);
+  const notes=mine.filter(t=>t.type==="braindump");
+  const undated=mine.filter(t=>t.type!=="braindump"&&!(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate));
+  const dis=state.locked?"disabled":"";
+  const row=t=>{
+    const c=clientByAbbr(t.clientAbbr);
+    const label=t.type==="braindump"?(t.projectName||"(note)"):(((c?c.abbr:t.clientAbbr)||"?")+(t.projectName?" \u00b7 "+t.projectName:" \u00b7 "+((TYPE_MAP[t.type]||{}).label||t.type)));
+    const di=(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate)?dueInfo(t.dueDate):null;
+    const pill=di?`<span class="bell-pill ${di.cls}">${esc(di.label)}</span>`:"";
+    return `<div class="bell-row" data-id="${t.id}" data-bd="${t.type==="braindump"?1:0}"><button class="bell-check" data-act="done" ${dis} title="Mark complete"></button><span class="bell-tcol" style="background:${typeColor(t.type)}"></span><span class="bell-lbl">${esc(label)}</span>${pill}</div>`;
+  };
+  const sec=(title,arr,cls)=>arr.length?`<div class="bell-sec ${cls||""}"><div class="bell-sec-h">${title} <span>${arr.length}</span></div>${arr.map(row).join("")}</div>`:"";
+  let html=sec("Overdue",over,"over")+sec("Today",tod,"today")+sec("Upcoming",up)+sec("Notes / brain dump",notes)+sec("No date",undated);
+  if(!html)html=`<div class="bell-empty">You're all caught up \u2014 nothing assigned to you is open.</div>`;
+  el.innerHTML=html;
+}
+function signIn(name){if(!name)return;ME=name;LS.set("acc_me",ME);LS.set("acc_personal",true);state.assignee=ME;syncAsgSelect();render();renderBellId();renderBellBody();toast("Signed in as "+ME);}
+function signOut(){ME="";LS.set("acc_me","");LS.set("acc_personal",false);if(state.assignee!=="all")state.assignee="all";syncAsgSelect();render();renderBellId();renderBellBody();toast("Signed out");}
+function togglePersonal(on){LS.set("acc_personal",!!on);state.assignee=on?ME:"all";syncAsgSelect();render();}
+
 function deliveryHTML(){
   return `<div class="soon-wrap"><div class="soon-card">
     <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg></div>
@@ -2102,6 +2204,21 @@ function wireUp(){
   document.addEventListener("click",e=>{const st=e.target.closest(".stat[data-stat]");if(st)onStatClick(st.dataset.stat);});
   $("#searchBox").oninput=e=>{state.search=e.target.value;render();};
   $("#themeBtn").onclick=toggleTheme;
+  const bb=$("#bellBtn");if(bb)bb.onclick=openBell;
+  const bx=$("#bellClose");if(bx)bx.onclick=closeBell;
+  const bs=$("#bellScrim");if(bs){
+    bs.addEventListener("click",e=>{
+      if(e.target===bs){closeBell();return;}
+      if(e.target.closest("#bellGo")){const p=$("#bellPick");signIn(p?p.value:"");return;}
+      if(e.target.closest("#bellSignout")){signOut();return;}
+      const chk=e.target.closest(".bell-check");
+      if(chk){const r=chk.closest(".bell-row");if(r&&!state.locked)toggleDone(r.dataset.id);return;}
+      const row=e.target.closest(".bell-row");
+      if(row){const id=row.dataset.id;closeBell();if(row.dataset.bd==="1"){state.view="braindump";LS.set(LK_VIEW,"braindump");document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view==="braindump"));render();}else{openEdit(id);}return;}
+    });
+    bs.addEventListener("change",e=>{if(e.target.closest("#bellPersonal"))togglePersonal(e.target.checked);});
+  }
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeBell();});
   $("#compToggle").onclick=()=>{$("#compToggle").classList.toggle("open");$("#compBody").classList.toggle("open");};
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest(".scrim").classList.remove("open"));
   document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("click",e=>{if(e.target===s)s.classList.remove("open");}));
