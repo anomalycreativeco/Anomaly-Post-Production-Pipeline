@@ -99,9 +99,11 @@ body.locked .cchip-rev{display:none}
 .tab.revtab{background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(208,99,30,.13) 6px 12px)}
 .tab.revtab.active{background:var(--rev);color:#fff}
 .pagenav{max-width:calc(100vw - 16px);overflow-x:auto;overflow-y:hidden}
+.pnav span{white-space:nowrap}
+.wrap.wide{max-width:none}
 .pnav{padding:8px 16px;min-width:66px}
 @media(max-width:760px){.pnav{padding:7px 11px}.pnav span{font-size:9px}}
-.bd-wrap{max-width:1120px;margin:0 auto;padding:4px 2px 48px}
+.bd-wrap{max-width:none;margin:0;padding:4px 4px 48px}
 .bd-head h2{margin:0 0 2px;font-family:Outfit,sans-serif;font-size:22px}
 .bd-head p{margin:0 0 14px;color:var(--muted);font-size:13px;max-width:660px}
 .bd-composer{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
@@ -186,6 +188,10 @@ body.locked .cchip-rev{display:none}
 .bell-pill.over{background:rgba(192,57,43,.14);color:var(--red)}
 .bell-pill.today,.bell-pill.soon{background:rgba(146,171,167,.2);color:var(--sage-800)}
 @media(max-width:760px){.bell-panel{width:100%;max-width:100%}}
+.card-h.cl-head{display:flex;align-items:center;justify-content:space-between;width:100%;background:transparent;border:none;cursor:pointer;padding:0;font:inherit;color:inherit;text-align:left}
+.cl-chev{width:18px;height:18px;color:var(--muted);transition:transform .18s;flex:0 0 auto}
+.cl-card.open .cl-chev{transform:rotate(180deg)}
+.cl-card:not(.open) .cl-body{display:none}
 .cal-nodate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);background:var(--canvas)}
 .cal-nodate .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .cal-nodate .cchip{width:auto}
@@ -541,6 +547,13 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .chk input{width:16px;height:16px;cursor:pointer}
 .cchip.ghost{background:transparent;border:1px dashed var(--line-2);color:var(--muted);font-weight:600}
 .cchip.ghost:hover{border-color:var(--sage);color:var(--sage-800);background:var(--sage-tint)}
+.cchip.ghost.missed{background:#7a1f1f;border:1px solid #7a1f1f;color:#fff;font-weight:700;cursor:grab;touch-action:none;display:inline-flex;align-items:center;gap:5px}
+.cchip.ghost.missed:hover{background:#641a1a;border-color:#641a1a;color:#fff}
+.cchip.ghost.missed.dragging{opacity:.4}
+.ghost-x{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:4px;background:rgba(255,255,255,.22);font-size:11px;line-height:1;cursor:pointer;flex:0 0 auto}
+.ghost-x:hover{background:rgba(255,255,255,.42)}
+body.locked .ghost-x,body.locked .cchip.ghost.missed{cursor:default}
+body.locked .ghost-x{display:none}
 .cl-days{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:4px}
 .cl-days .lbl{font-size:11px;color:var(--muted);font-weight:700;margin-right:3px}
 .dchip{width:24px;height:24px;border-radius:7px;border:1px solid var(--line-2);background:var(--paper);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;padding:0}
@@ -692,7 +705,7 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
   <button class="pnav" data-view="dashboard" title="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span>Dashboard</span></button>
   <button class="pnav" data-view="filming" title="Footage Runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Filming</span></button>
   <button class="pnav" data-view="delivery" title="Delivery Panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg><span>Delivery</span></button>
-  <button class="pnav" data-view="braindump" title="Brain Dump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/></svg><span>Brain Dump</span></button>
+  <button class="pnav" data-view="braindump" title="Sticky Notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/></svg><span>Sticky Notes</span></button>
   <button class="pnav" data-view="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
 </nav>
 
@@ -786,7 +799,7 @@ const DEFAULT_TYPES=[
   {id:"batch",label:"Batch",due:true,color:"#9a8a5f"},
   {id:"listings",label:"Listings",due:true,color:"#5f9a76"},
   {id:"filming",label:"Footage Runs",due:true,color:"#c2607a"},
-  {id:"braindump",label:"Brain Dump",due:false,color:"#8b7fb0"},
+  {id:"braindump",label:"Sticky Note",due:false,color:"#8b7fb0"},
 ];
 const DEFAULT_CATS=[
   {key:"services",label:"Services",color:"#92ABA7"},
@@ -886,6 +899,7 @@ const backend={
   async saveTypes(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","types"),{list:TYPES});else LS.set(LK_TYP,TYPES);},
   async saveSecurity(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","security"),{list:SEC_HASH?[SEC_HASH]:[]});else LS.set(LK_SEC,SEC_HASH||"");},
   async saveSchedule(){const arr=Object.keys(SCHEDULE).filter(a=>SCHEDULE[a]&&SCHEDULE[a].length).map(a=>({abbr:a,days:SCHEDULE[a]}));if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","schedule"),{list:arr});else LS.set(LK_SCHED,arr);},
+  async saveSkips(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","skips"),{list:[...SKIPS]});else LS.set(LK_SKIPS,[...SKIPS]);},
   async saveReport(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","report"),{list:REPORT_RECIP});else LS.set(LK_REPORT,REPORT_RECIP);},
   async saveJarvis(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","jarvis"),{list:JARVIS_ENDPOINT?[JARVIS_ENDPOINT]:[]});else LS.set(LK_JARVIS,JARVIS_ENDPOINT||"");},
   async saveTimezone(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","timezone"),{list:PROJECT_TZ?[PROJECT_TZ]:[]});else LS.set(LK_TZ,PROJECT_TZ||"");},
@@ -896,8 +910,9 @@ const backend={
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
 let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
-const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", LK_TZ="acc_project_tz", LK_VIEW="acc_view", SALT="acc::";
+const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", LK_TZ="acc_project_tz", LK_VIEW="acc_view", LK_SKIPS="acc_skips", SALT="acc::";
 let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
+let SKIPS=new Set(); let pendingMiss=null;
 let SEC_HASH=null, lockPrompted=false;
 function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);}
 
@@ -978,6 +993,7 @@ function initLocal(){
   SEC_HASH=LS.get(LK_SEC,"")||null;
   ADMIN_HASH=LS.get("acc_admin_hash","")||null;
   SCHEDULE=Object.fromEntries((LS.get(LK_SCHED,[])||[]).map(e=>[e.abbr,e.days||[]]));
+  SKIPS=new Set(LS.get(LK_SKIPS,[])||[]);
   REPORT_RECIP=LS.get(LK_REPORT,[])||[];
   JARVIS_ENDPOINT=LS.get(LK_JARVIS,"")||"";
   PROJECT_TZ=LS.get(LK_TZ,"")||"";
@@ -998,7 +1014,7 @@ async function initFirebase(){
     for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
     if(!have.has("appversion"))await FBSDK.setDoc(doc(db,"config","appversion"),{list:[APP_VERSION,""]});
     onSnapshot(collection(db,"config"),s=>{
-      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
+      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="skips")SKIPS=new Set(list||[]);else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
       rebuildConfigUI();ensureDailyDue();ensureFilmingType();ensureBraindumpType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
     },()=>setSyncStatus("err"));
     onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
@@ -1012,7 +1028,7 @@ async function ensureFilmingType(){
 }
 async function ensureBraindumpType(){
   if(TYPES.find(t=>t.id==="braindump"))return;
-  TYPES.push({id:"braindump",label:"Brain Dump",due:false,color:"#8b7fb0"});
+  TYPES.push({id:"braindump",label:"Sticky Note",due:false,color:"#8b7fb0"});
   rebuildTypeMaps();rebuildConfigUI();try{await backend.saveTypes();}catch(e){}
 }
 function addCadence(ds,recur){
@@ -1043,7 +1059,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.1.0", APP_BUILD="2026-06-23";
+const APP_VERSION="1.1.2", APP_BUILD="2026-06-23";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1114,6 +1130,7 @@ function render(){
   updateCounts();
   const ctrls=document.querySelector(".controls");
   if(ctrls)ctrls.style.display=(state.view==="dashboard"||state.view==="settings"||state.view==="filming"||state.view==="delivery"||state.view==="braindump")?"none":"";
+  const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("wide", state.view==="braindump");
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
   let pool=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
@@ -1220,10 +1237,12 @@ function calendarHTML(tasks){
   const hzD=new Date();hzD.setDate(hzD.getDate()+28);const horizon=ymd(hzD);
   const showGhosts=(state.tab==="master"||state.tab==="daily")&&state.assignee==="all"&&!state.search.trim();
   const ghostsFor=(ds)=>{
-    if(!showGhosts||ds<todayLocal||ds>horizon)return"";
+    if(!showGhosts||ds>horizon)return"";
     const wd=new Date(ds+"T00:00:00").getDay();
     const existing=(dated[ds]||[]);
-    return state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(state.cat==="all"||c.cat===state.cat)&&!existing.some(t=>t.clientAbbr===c.abbr)).map(c=>`<button class="cchip ghost" data-gdate="${ds}" data-gclient="${esc(c.abbr)}" title="Scheduled post for ${esc(c.name)} — click to add">${esc(c.abbr)} · +</button>`).join("");
+    const due=state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(state.cat==="all"||c.cat===state.cat)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds));
+    if(ds<todayLocal) return due.map(c=>`<button class="cchip ghost missed" data-mclient="${esc(c.abbr)}" data-mdate="${ds}" title="Missed scheduled post for ${esc(c.name)} — drag to today or a future day to reschedule, or × to dismiss">${esc(c.abbr)} · missed<span class="ghost-x" data-mx="1" title="Dismiss">×</span></button>`).join("");
+    return due.map(c=>`<button class="cchip ghost" data-gdate="${ds}" data-gclient="${esc(c.abbr)}" title="Scheduled post for ${esc(c.name)} — click to add">${esc(c.abbr)} · +</button>`).join("");
   };
   const dow=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   if(state.calMode==="week"){
@@ -1261,6 +1280,10 @@ function calDragStart(b,e){
   if(!t||!(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)||t.completed)return;
   calDrag={id:b.dataset.id,x0:e.clientX,y0:e.clientY,el:b,ghost:null,active:false,over:null};
 }
+function calDragStartMiss(b,e){
+  if(state.locked)return;
+  calDrag={miss:{abbr:b.dataset.mclient,fromDate:b.dataset.mdate},x0:e.clientX,y0:e.clientY,el:b,ghost:null,active:false,over:null};
+}
 function initCalDnD(){
   if(window.__calDnD)return;window.__calDnD=true;
   window.addEventListener("pointermove",e=>{
@@ -1291,6 +1314,12 @@ function initCalDnD(){
     if(d.over)d.over.classList.remove("drag-over");
     calDragged=true;setTimeout(()=>{calDragged=false;},400);
     if(!cell)return;
+    if(d.miss){
+      const ndm=cell.dataset.date;
+      if(ndm<todayStr()){toast("Pick today or a later day to reschedule");return;}
+      await reassignMiss(d.miss.abbr,d.miss.fromDate,ndm);
+      return;
+    }
     const nd=cell.dataset.date,t=state.tasks.find(x=>x.id===d.id);
     if(!t||t.dueDate===nd)return;
     const _want=nd,_tid=t.id;
@@ -1302,6 +1331,13 @@ function initCalDnD(){
 function bindCalendar(scope){
   scope.querySelectorAll(".cchip.ghost[data-gdate]").forEach(g=>{
     g.addEventListener("click",e=>{e.stopPropagation();openAdd(g.dataset.gdate,g.dataset.gclient);});
+  });
+  scope.querySelectorAll(".cchip.ghost.missed").forEach(b=>{
+    b.addEventListener("pointerdown",e=>{if(e.target.closest(".ghost-x"))return;if(e.pointerType==="mouse"&&e.button!==0)return;calDragStartMiss(b,e);});
+    b.addEventListener("click",e=>{e.stopPropagation();if(calDragged){calDragged=false;return;}if(e.target.closest(".ghost-x"))return;clickMiss(b.dataset.mclient,b.dataset.mdate);});
+  });
+  scope.querySelectorAll(".ghost-x[data-mx]").forEach(x=>{
+    x.addEventListener("click",e=>{e.stopPropagation();const b=x.closest(".cchip.ghost.missed");if(b)dismissMiss(b.dataset.mclient,b.dataset.mdate);});
   });
   scope.querySelectorAll(".cchip-tick[data-stage]").forEach(tk=>{
     tk.addEventListener("click",e=>{e.stopPropagation();advanceStage(tk.dataset.stage);});
@@ -1571,6 +1607,25 @@ function bindRows(scope){
 function assigneeAvatar(t){if(!t.assignee)return"";return `<span class="ava" style="background:${editorColor(t.assignee)}" title="${esc(t.assignee)}">${esc(t.assignee.slice(0,2))}</span>`;}
 
 /* ============ task ops ============ */
+function skipKey(abbr,ds){return abbr+"|"+ds;}
+function isSkipped(abbr,ds){return SKIPS.has(skipKey(abbr,ds));}
+function unassignedTodayCount(){
+  const ds=todayStr(), wd=new Date(ds+"T00:00:00").getDay();
+  const existing=state.tasks.filter(t=>t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump");
+  return state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds)).length;
+}
+async function reassignMiss(abbr,fromDate,toDate){
+  if(state.locked)return;
+  const task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:"daily",clientAbbr:abbr,projectName:"",assignee:"",dueDate:toDate,projectUrl:"",footageUrl:"",audioUrl:"",notes:"",delivered:false,recur:"none",completed:false,completedAt:null,createdAt:Date.now()};
+  SKIPS.add(skipKey(abbr,fromDate));
+  await backend.upsertTask(task); await backend.saveSkips();
+  touchActivity();refreshUI();toast("Rescheduled to "+toDate);
+}
+async function dismissMiss(abbr,ds){
+  if(state.locked)return;
+  SKIPS.add(skipKey(abbr,ds)); await backend.saveSkips(); refreshUI(); toast("Missed post dismissed");
+}
+function clickMiss(abbr,ds){ if(state.locked)return; openAdd(todayStr(),abbr); pendingMiss={abbr,fromDate:ds}; }
 async function toggleDone(id){
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
   const wasOpen=!t.completed, today=todayStr();
@@ -1580,7 +1635,7 @@ async function toggleDone(id){
   if(wasOpen&&t.type==="filming")maybeRecur({...t,completed:true,completedAt:Date.now()});
   if(wasDueToday){
     const todays=state.tasks.filter(x=>x.type==="daily"&&x.dueDate===today);
-    if(todays.length>0 && todays.every(x=>x.completed) && isAfter3ET()) celebrate();
+    if(todays.length>0 && todays.every(x=>x.completed) && isAfter3ET() && unassignedTodayCount()===0) celebrate();
   }
 }
 async function advanceStage(id){
@@ -1593,7 +1648,7 @@ async function advanceStage(id){
   else{patch={completed:true,completedAt:Date.now()};msg="Marked posted";}
   await backend.upsertTask({...t,...patch});touchActivity();refreshUI();toast(msg);
   if(patch.completed&&t.type==="filming")maybeRecur({...t,...patch});
-  if(patch.completed&&t.type==="daily"&&t.dueDate===today){const todays=state.tasks.filter(x=>x.type==="daily"&&x.dueDate===today);if(todays.length>0&&todays.every(x=>x.completed)&&isAfter3ET())celebrate();}
+  if(patch.completed&&t.type==="daily"&&t.dueDate===today){const todays=state.tasks.filter(x=>x.type==="daily"&&x.dueDate===today);if(todays.length>0&&todays.every(x=>x.completed)&&isAfter3ET()&&unassignedTodayCount()===0)celebrate();}
 }
 async function toggleDelivered(id){
   if(state.locked)return;
@@ -1640,6 +1695,7 @@ function syncDueRow(){
 function fillClientSelect(sel){sel.innerHTML=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.abbr)}">${esc(c.abbr)} — ${esc(c.name)}</option>`).join("");}
 function openAdd(prefillDate,prefillClient){
   if(state.locked)return;
+  pendingMiss=null;
   $("#editId").value="";$("#addTitle").textContent="New Entry";
   const tabType=(state.tab!=="master"&&TYPE_MAP[state.tab])?state.tab:null;
   if(prefillClient)curType="daily";
@@ -1708,7 +1764,7 @@ function renderBellBody(){
     return `<div class="bell-row" data-id="${t.id}" data-bd="${t.type==="braindump"?1:0}"><button class="bell-check" data-act="done" ${dis} title="Mark complete"></button><span class="bell-tcol" style="background:${typeColor(t.type)}"></span><span class="bell-lbl">${esc(label)}</span>${pill}</div>`;
   };
   const sec=(title,arr,cls)=>arr.length?`<div class="bell-sec ${cls||""}"><div class="bell-sec-h">${title} <span>${arr.length}</span></div>${arr.map(row).join("")}</div>`:"";
-  let html=sec("Overdue",over,"over")+sec("Today",tod,"today")+sec("Upcoming",up)+sec("Notes / brain dump",notes)+sec("No date",undated);
+  let html=sec("Overdue",over,"over")+sec("Today",tod,"today")+sec("Upcoming",up)+sec("Sticky notes",notes)+sec("No date",undated);
   if(!html)html=`<div class="bell-empty">You're all caught up \u2014 nothing assigned to you is open.</div>`;
   el.innerHTML=html;
 }
@@ -1748,10 +1804,10 @@ function braindumpHTML(){
       </div>
     </div>`;
   const grid=active.length?`<div class="bd-grid">${active.map(card).join("")}</div>`
-    :`<div class="bd-empty">No notes yet \u2014 jot something above. Brain-dump tasks live here until you check them off or convert them into deliverables.</div>`;
+    :`<div class="bd-empty">No notes yet \u2014 jot something above. Sticky notes live here until you check them off or convert them into deliverables.</div>`;
   const doneSec=done.length?`<details class="bd-done"><summary>Done (${done.length})</summary><div class="bd-done-list">${done.map(t=>`<div class="bd-done-row" data-id="${t.id}"><button class="bd-check on" data-act="done" title="Reopen" ${state.locked?"disabled":""}></button><span class="bd-done-txt">${esc(t.projectName||"(untitled)")}</span>${t.assignee?`<span class="bd-done-asg">${esc(t.assignee)}</span>`:""}<button class="ic del" data-act="del" title="Delete" ${state.locked?"disabled":""}>${TRASH}</button></div>`).join("")}</div></details>`:"";
   return `<div class="bd-wrap">
-    <div class="bd-head"><h2>Brain Dump</h2><p>Sticky notes for quick, assignable tasks. Check them off, leave notes, or convert any note into a tracked deliverable that shows up in List and Calendar.</p></div>
+    <div class="bd-head"><h2>Sticky Notes</h2><p>Sticky notes for quick, assignable tasks. Check them off, leave notes, or convert any note into a tracked deliverable that shows up in List and Calendar.</p></div>
     ${composer}${grid}${doneSec}
   </div>`;
 }
@@ -1773,7 +1829,7 @@ async function addSticky(){
   const inp=$("#bdInput");if(!inp)return;const text=inp.value.trim();if(!text)return;
   const asg=$("#bdAsg")?$("#bdAsg").value:"";
   const t={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:"braindump",clientAbbr:"",projectName:text,assignee:asg,notes:"",completed:false,completedAt:null,createdAt:Date.now()};
-  await backend.upsertTask(t);inp.value="";touchActivity();refreshUI();toast("Added to brain dump");
+  await backend.upsertTask(t);inp.value="";touchActivity();refreshUI();toast("Sticky note added");
 }
 async function assignSticky(id,name){if(state.locked)return;const t=state.tasks.find(x=>x.id===id);if(!t)return;await backend.upsertTask({...t,assignee:name});touchActivity();}
 async function saveStickyField(id,field,val){if(state.locked)return;const t=state.tasks.find(x=>x.id===id);if(!t)return;const v=(typeof val==="string")?val.trim():val;if((t[field]||"")===v)return;await backend.upsertTask({...t,[field]:v});touchActivity();}
@@ -1849,6 +1905,7 @@ async function saveEntry(){
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
   await backend.upsertTask(task);
   $("#addScrim").classList.remove("open");refreshUI();touchActivity();toast(id?"Saved":"Entry added");
+  if(pendingMiss){SKIPS.add(skipKey(pendingMiss.abbr,pendingMiss.fromDate));backend.saveSkips();pendingMiss=null;}
 }
 
 /* ============ clients manager ============ */
@@ -1930,8 +1987,9 @@ function setSyncStatus(s){
 const TRASH=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>`;
 function settingsHTML(){
   return `<div class="settings">
-    <div class="card set-card set-wide">
-      <div class="card-h">Clients <span class="set-count">${state.clients.length}</span></div>
+    <div class="card set-card set-wide cl-card ${LS.get("acc_set_clients_open",false)?"open":""}">
+      <button type="button" class="card-h cl-head" id="cliCollapse" aria-label="Toggle clients"><span>Clients <span class="set-count">${state.clients.length}</span></span><svg class="cl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="cl-body">
       <div class="cl-add">
         <div class="frow"><label>Client Name</label><input class="inp" id="ncName" placeholder="New client name"></div>
         <div class="frow"><label>Abbr.</label><input class="inp" id="ncAbbr" placeholder="ABCD" maxlength="6" style="text-transform:uppercase"></div>
@@ -1940,6 +1998,7 @@ function settingsHTML(){
       </div>
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="cliSearch" placeholder="Search clients…"></div>
       <div class="cl-list" id="cliList"></div>
+      </div>
     </div>
     <div class="card set-card">
       <div class="card-h">Editors <span class="set-count">${EDITORS_LIST.length}</span></div>
@@ -1962,15 +2021,6 @@ function settingsHTML(){
           <button class="btn primary" id="exportCsv">Export active projects to CSV</button>
           <label class="btn" style="cursor:pointer">Import from CSV<input type="file" id="importCsv" accept=".csv,text/csv" style="display:none"></label>
           <span class="set-hint">Export saves a spreadsheet backup of active projects; import adds or updates from one.</span>
-        </div>
-      </div>
-      <div class="card set-card set-wide">
-        <div class="card-h">Security · edit password</div>
-        <div class="set-add">
-          <input class="inp" id="secPw" type="password" placeholder="${SEC_HASH?"New password":"Set a password"}" autocomplete="new-password" style="flex:1 1 180px">
-          <button class="btn primary" id="secSet">${SEC_HASH?"Change password":"Enable view-only"}</button>
-          ${SEC_HASH?`<button class="btn" id="secRemove">Remove password</button>`:""}
-          <span class="set-hint">${SEC_HASH?"Editing is gated: visitors can view, but the password is required to make changes — and again after 24 hours of inactivity.":"No password set — anyone with the link can edit. Set one to make the site view-only until unlocked."}</span>
         </div>
       </div>
       <div class="card set-card set-wide">
@@ -2113,13 +2163,12 @@ function bindSettings(scope){
   $("#typAdd").onclick=addType;$("#typLabel").onkeydown=e=>{if(e.key==="Enter")addType();};
   const ex=$("#exportCsv");if(ex)ex.onclick=exportCSV;
   const im=$("#importCsv");if(im)im.onchange=e=>{importCSV(e.target.files[0]);e.target.value="";};
+  const cc=$("#cliCollapse");if(cc)cc.onclick=()=>{const card=cc.closest(".cl-card");const open=!card.classList.contains("open");card.classList.toggle("open",open);LS.set("acc_set_clients_open",open);};
   const ssb=$("#secSet");if(ssb)ssb.onclick=setPassword;
-  const srb=$("#secRemove");if(srb)srb.onclick=removePassword;
   const rsb=$("#repSave");if(rsb)rsb.onclick=setReportRecip;
   const jsb=$("#jarSave");if(jsb)jsb.onclick=setJarvisEndpoint;
   const tzs=$("#tzSel");if(tzs)tzs.onchange=()=>setTimezone(tzs.value);
   const hc=$("#hideConflict");if(hc)hc.onchange=()=>{LS.set("acc_hide_conflict",hc.checked);toast(hc.checked?"Conflict warnings hidden":"Conflict warnings on");};
-  const spw=$("#secPw");if(spw)spw.onkeydown=e=>{if(e.key==="Enter")setPassword();};
   const au=$("#admUnlock");if(au)au.onclick=tryAdminUnlock;
   const ae=$("#admEnter");if(ae)ae.onkeydown=e=>{if(e.key==="Enter")tryAdminUnlock();};
   const aset=$("#admSet");if(aset)aset.onclick=setAdminPw;
@@ -2146,16 +2195,14 @@ function bindSettings(scope){
 const ICON_LOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const ICON_UNLOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.5"/></svg>`;
 function refreshLock(){
-  if(!SEC_HASH){state.locked=false;}
-  else{const last=parseInt(LS.get(LK_UNLOCK,"0"),10)||0;state.locked=!((Date.now()-last)<86400000);}
+  state.locked=false;
   applyLockUI();
-  if(state.locked && !lockPrompted){lockPrompted=true;openUnlock();}
 }
 function applyLockUI(){
   document.body.classList.toggle("locked",state.locked);
   const fab=$("#openAdd");if(fab)fab.style.display=state.locked?"none":"";
   const sNav=document.querySelector('[data-view="settings"]');if(sNav)sNav.classList.toggle("navlocked",state.locked);
-  const lb=$("#lockBtn");if(lb){lb.style.display=SEC_HASH?"":"none";lb.innerHTML=state.locked?ICON_LOCK:ICON_UNLOCK;lb.title=state.locked?"View only — tap to unlock editing":"Editing unlocked — tap to lock";}
+  const lb=$("#lockBtn");if(lb){lb.style.display="none";lb.innerHTML=state.locked?ICON_LOCK:ICON_UNLOCK;lb.title=state.locked?"View only — tap to unlock editing":"Editing unlocked — tap to lock";}
   if(state.locked && state.view==="settings"){state.view="list";document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view==="list"));render();}
 }
 function openUnlock(){const sc=$("#lockScrim");if(!sc)return;const p=$("#lockPw");if(p)p.value="";const er=$("#lockErr");if(er)er.textContent="";sc.classList.add("open");setTimeout(()=>{const f=$("#lockPw");if(f)f.focus();},60);}
