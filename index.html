@@ -550,10 +550,14 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .cchip.ghost.missed{background:#7a1f1f;border:1px solid #7a1f1f;color:#fff;font-weight:700;cursor:grab;touch-action:none;display:inline-flex;align-items:center;gap:5px}
 .cchip.ghost.missed:hover{background:#641a1a;border-color:#641a1a;color:#fff}
 .cchip.ghost.missed.dragging{opacity:.4}
+.ghost-check{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.85);background:transparent;cursor:pointer;flex:0 0 auto;position:relative}
+.ghost-check:hover{background:rgba(255,255,255,.9)}
+.ghost-check:hover::after{content:"";position:absolute;left:3px;top:1px;width:4px;height:7px;border:solid #7a1f1f;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.ghost-mlbl{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ghost-x{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:4px;background:rgba(255,255,255,.22);font-size:11px;line-height:1;cursor:pointer;flex:0 0 auto}
 .ghost-x:hover{background:rgba(255,255,255,.42)}
 body.locked .ghost-x,body.locked .cchip.ghost.missed{cursor:default}
-body.locked .ghost-x{display:none}
+body.locked .ghost-x,body.locked .ghost-check{display:none}
 .cl-days{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:4px}
 .cl-days .lbl{font-size:11px;color:var(--muted);font-weight:700;margin-right:3px}
 .dchip{width:24px;height:24px;border-radius:7px;border:1px solid var(--line-2);background:var(--paper);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;padding:0}
@@ -1059,7 +1063,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.1.2", APP_BUILD="2026-06-23";
+const APP_VERSION="1.1.3", APP_BUILD="2026-06-23";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1241,7 +1245,7 @@ function calendarHTML(tasks){
     const wd=new Date(ds+"T00:00:00").getDay();
     const existing=(dated[ds]||[]);
     const due=state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(state.cat==="all"||c.cat===state.cat)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds));
-    if(ds<todayLocal) return due.map(c=>`<button class="cchip ghost missed" data-mclient="${esc(c.abbr)}" data-mdate="${ds}" title="Missed scheduled post for ${esc(c.name)} — drag to today or a future day to reschedule, or × to dismiss">${esc(c.abbr)} · missed<span class="ghost-x" data-mx="1" title="Dismiss">×</span></button>`).join("");
+    if(ds<todayLocal) return due.map(c=>`<button class="cchip ghost missed" data-mclient="${esc(c.abbr)}" data-mdate="${ds}" title="Missed scheduled post for ${esc(c.name)} — check to mark done, drag to reschedule, or × to dismiss"><span class="ghost-check" data-mdone="1" title="Mark completed"></span><span class="ghost-mlbl">${esc(c.abbr)} · missed</span><span class="ghost-x" data-mx="1" title="Dismiss">×</span></button>`).join("");
     return due.map(c=>`<button class="cchip ghost" data-gdate="${ds}" data-gclient="${esc(c.abbr)}" title="Scheduled post for ${esc(c.name)} — click to add">${esc(c.abbr)} · +</button>`).join("");
   };
   const dow=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -1333,11 +1337,14 @@ function bindCalendar(scope){
     g.addEventListener("click",e=>{e.stopPropagation();openAdd(g.dataset.gdate,g.dataset.gclient);});
   });
   scope.querySelectorAll(".cchip.ghost.missed").forEach(b=>{
-    b.addEventListener("pointerdown",e=>{if(e.target.closest(".ghost-x"))return;if(e.pointerType==="mouse"&&e.button!==0)return;calDragStartMiss(b,e);});
-    b.addEventListener("click",e=>{e.stopPropagation();if(calDragged){calDragged=false;return;}if(e.target.closest(".ghost-x"))return;clickMiss(b.dataset.mclient,b.dataset.mdate);});
+    b.addEventListener("pointerdown",e=>{if(e.target.closest(".ghost-x")||e.target.closest(".ghost-check"))return;if(e.pointerType==="mouse"&&e.button!==0)return;calDragStartMiss(b,e);});
+    b.addEventListener("click",e=>{e.stopPropagation();if(calDragged){calDragged=false;return;}if(e.target.closest(".ghost-x")||e.target.closest(".ghost-check"))return;clickMiss(b.dataset.mclient,b.dataset.mdate);});
   });
   scope.querySelectorAll(".ghost-x[data-mx]").forEach(x=>{
     x.addEventListener("click",e=>{e.stopPropagation();const b=x.closest(".cchip.ghost.missed");if(b)dismissMiss(b.dataset.mclient,b.dataset.mdate);});
+  });
+  scope.querySelectorAll(".ghost-check[data-mdone]").forEach(ck=>{
+    ck.addEventListener("click",e=>{e.stopPropagation();const b=ck.closest(".cchip.ghost.missed");if(b)completeMiss(b.dataset.mclient,b.dataset.mdate);});
   });
   scope.querySelectorAll(".cchip-tick[data-stage]").forEach(tk=>{
     tk.addEventListener("click",e=>{e.stopPropagation();advanceStage(tk.dataset.stage);});
@@ -1624,6 +1631,11 @@ async function reassignMiss(abbr,fromDate,toDate){
 async function dismissMiss(abbr,ds){
   if(state.locked)return;
   SKIPS.add(skipKey(abbr,ds)); await backend.saveSkips(); refreshUI(); toast("Missed post dismissed");
+}
+async function completeMiss(abbr,ds){
+  if(state.locked)return;
+  const task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:"daily",clientAbbr:abbr,projectName:"",assignee:"",dueDate:ds,projectUrl:"",footageUrl:"",audioUrl:"",notes:"",delivered:false,recur:"none",completed:true,completedAt:Date.now(),createdAt:Date.now()};
+  await backend.upsertTask(task); touchActivity(); refreshUI(); toast("Marked complete");
 }
 function clickMiss(abbr,ds){ if(state.locked)return; openAdd(todayStr(),abbr); pendingMiss={abbr,fromDate:ds}; }
 async function toggleDone(id){
