@@ -985,7 +985,7 @@ const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule",
 let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
 let SKIPS=new Set(); let pendingMiss=null;
 let DOCS=[]; let STSDK=null, storage=null;
-let dashClientSort="behind"; const dashExpanded=new Set();
+let dashClientSort="behind"; const dashExpanded=new Set(); const STATS_SINCE="2026-06-22";
 let SEC_HASH=null, lockPrompted=false;
 function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);}
 
@@ -1134,7 +1134,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.2.2", APP_BUILD="2026-06-23";
+const APP_VERSION="1.2.3", APP_BUILD="2026-06-28";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1454,9 +1454,9 @@ function bindCalendar(scope){
 /* ============ dashboard ============ */
 function perClientStats(){
   const today=todayStr(), base=new Date(today+"T00:00:00"), days=[];
-  for(let i=1;i<=30;i++){const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()-i);days.push({ds:ymd(d),wd:d.getDay()});}
+  for(let i=1;i<=30;i++){const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()-i);const ds=ymd(d);if(ds>=STATS_SINCE)days.push({ds,wd:d.getDay()});}
   return state.clients.map(c=>{
-    const posts=state.tasks.filter(t=>t.clientAbbr===c.abbr&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.type!=="filming"&&t.type!=="braindump");
+    const posts=state.tasks.filter(t=>t.clientAbbr===c.abbr&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.type!=="filming"&&t.type!=="braindump"&&((t.dueDate&&t.dueDate>=STATS_SINCE)||(!t.dueDate&&t.completedAt&&ymd(new Date(t.completedAt))>=STATS_SINCE)));
     const comp=posts.filter(t=>t.completed);
     const withDue=comp.filter(t=>t.dueDate);
     const onTime=withDue.filter(t=>t.completedAt&&ymd(new Date(t.completedAt))<=t.dueDate).length;
@@ -1514,7 +1514,7 @@ function clientPanelHTML(){
   return `<div class="card wide pc-card ${open?'open':''}">
     <button type="button" class="card-h pc-collapse" id="pcCollapse"><span>Per-client performance <span class="set-count">${rows.length}</span></span><svg class="cl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="pc-body">
-      <div class="pc-tools"><span class="pc-note">Sorted to surface where you're falling behind — red dots and a high “Missed 30d” are your problem clients. Click any client for detail.</span>
+      <div class="pc-tools"><span class="pc-note">Sorted to surface where you're falling behind — red dots and a high “Missed 30d” are your problem clients. Click any client for detail. <b>Stats cover work since Jun 22, 2026.</b></span>
         <select class="inp pc-sort" id="pcSort">
           <option value="behind" ${sort==="behind"?"selected":""}>Sort: Most behind</option>
           <option value="ontime" ${sort==="ontime"?"selected":""}>Sort: Lowest on-time</option>
