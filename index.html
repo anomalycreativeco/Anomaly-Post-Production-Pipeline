@@ -125,6 +125,13 @@ body.locked .cchip-rev{display:none}
 [data-theme="dark"] .bd-notes{background:rgba(0,0,0,.2)}
 .bd-notes:focus{outline:1.5px solid var(--sage)}
 .bd-acts{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:1px}
+.bd-due-inp{flex:0 0 150px}
+.bd-duerow{display:flex;align-items:center;gap:7px;font-size:11px}
+.bd-due-lbl{color:#8a7d3a;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:10px;flex:0 0 auto}
+.bd-date{border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.55);border-radius:6px;font-size:11.5px;color:inherit;padding:3px 6px;font-family:inherit;flex:1 1 auto;min-width:0}
+[data-theme="dark"] .bd-date{background:rgba(0,0,0,.2);border-color:rgba(255,255,255,.15)}
+.bd-duerow.over .bd-due-lbl,.bd-duerow.over .bd-date{color:var(--red)}
+.bd-duerow.over .bd-date{border-color:var(--red)}
 .bd-btn.convert{font-size:11px;font-weight:700;color:var(--sage-800);background:rgba(146,171,167,.22);border:1px solid rgba(146,171,167,.5);border-radius:6px;padding:3px 9px;cursor:pointer}
 .bd-btn.convert:hover{background:rgba(146,171,167,.42)}
 .bd-acts .ic.del{width:26px;height:26px}
@@ -980,7 +987,8 @@ const backend={
 
 /* ============ state ============ */
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
-let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",calMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1),calWeek:weekStart(new Date())};
+function workingMonth(){const d=new Date();d.setDate(d.getDate()+3);return new Date(d.getFullYear(),d.getMonth(),1);}
+let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",calMonth:workingMonth(),calWeek:weekStart(new Date())};
 const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", LK_TZ="acc_project_tz", LK_VIEW="acc_view", LK_SKIPS="acc_skips", SALT="acc::";
 let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
 let SKIPS=new Set(); let pendingMiss=null;
@@ -1134,7 +1142,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.2.3", APP_BUILD="2026-06-28";
+const APP_VERSION="1.2.5", APP_BUILD="2026-06-28";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1901,7 +1909,7 @@ function bizDaysUntil(ds){
 }
 function syncAsgSelect(){const sel=document.querySelector("#asgFilter");if(sel)sel.value=state.assignee;}
 function myOpenTasks(){if(!ME)return [];return state.tasks.filter(t=>t.assignee===ME&&!t.completed);}
-function bellActionCount(){if(!ME)return 0;const today=todayStr();return myOpenTasks().filter(t=>{const tp=TYPE_MAP[t.type];return tp&&tp.due&&t.dueDate&&t.dueDate<=today;}).length;}
+function bellActionCount(){if(!ME)return 0;const today=todayStr();return myOpenTasks().filter(t=>{const tp=TYPE_MAP[t.type];return ((tp&&tp.due)||t.type==="braindump")&&t.dueDate&&t.dueDate<=today;}).length;}
 function updateBell(){
   const btn=document.querySelector("#bellBtn"); if(btn)btn.classList.toggle("signed",!!ME);
   const b=document.querySelector("#bellBadge"); if(!b)return;
@@ -1925,17 +1933,17 @@ function renderBellBody(){
   const el=document.querySelector("#bellBody"); if(!el)return;
   if(!ME){el.innerHTML=`<div class="bell-empty">Sign in above to see your personal to-do list.</div>`;return;}
   const today=todayStr(), mine=myOpenTasks();
-  const dated=mine.filter(t=>{const tp=TYPE_MAP[t.type];return tp&&tp.due&&t.dueDate;});
+  const dated=mine.filter(t=>{const tp=TYPE_MAP[t.type];return ((tp&&tp.due)||t.type==="braindump")&&t.dueDate;});
   const over=dated.filter(t=>t.dueDate<today).sort((a,b)=>a.dueDate<b.dueDate?-1:1);
   const tod=dated.filter(t=>t.dueDate===today);
   const up=dated.filter(t=>t.dueDate>today).sort((a,b)=>a.dueDate<b.dueDate?-1:1);
-  const notes=mine.filter(t=>t.type==="braindump");
+  const notes=mine.filter(t=>t.type==="braindump"&&!t.dueDate);
   const undated=mine.filter(t=>t.type!=="braindump"&&!(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate));
   const dis=state.locked?"disabled":"";
   const row=t=>{
     const c=clientByAbbr(t.clientAbbr);
     const label=t.type==="braindump"?(t.projectName||"(note)"):(((c?c.abbr:t.clientAbbr)||"?")+(t.projectName?" \u00b7 "+t.projectName:" \u00b7 "+((TYPE_MAP[t.type]||{}).label||t.type)));
-    const di=(TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.dueDate)?dueInfo(t.dueDate):null;
+    const di=t.dueDate?dueInfo(t.dueDate):null;
     const pill=di?`<span class="bell-pill ${di.cls}">${esc(di.label)}</span>`:"";
     return `<div class="bell-row" data-id="${t.id}" data-bd="${t.type==="braindump"?1:0}"><button class="bell-check" data-act="done" ${dis} title="Mark complete"></button><span class="bell-tcol" style="background:${typeColor(t.type)}"></span><span class="bell-lbl">${esc(label)}</span>${pill}</div>`;
   };
@@ -2041,11 +2049,13 @@ function bdEdOpts(name){return `<option value="">\u2014 unassigned \u2014</optio
 function braindumpHTML(){
   const dis=state.locked?"disabled":"";
   const items=state.tasks.filter(t=>t.type==="braindump");
-  const active=items.filter(t=>!t.completed).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const today=todayStr();
+  const active=items.filter(t=>!t.completed).sort((a,b)=>{const ad=a.dueDate||"9999-99-99",bd=b.dueDate||"9999-99-99";if(ad!==bd)return ad<bd?-1:1;return (b.createdAt||0)-(a.createdAt||0);});
   const done=items.filter(t=>t.completed).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
   const composer=`<div class="bd-composer">
     <input id="bdInput" class="inp" placeholder="Jot a quick task or note\u2026" ${dis}>
     <select id="bdAsg" class="inp bd-asg" ${dis}>${bdEdOpts("")}</select>
+    <input type="date" id="bdDue" class="inp bd-due-inp" title="Due date (optional)" ${dis}>
     <button class="btn primary" id="bdAdd" ${dis}>Add</button>
   </div>`;
   const card=t=>`<div class="bd-note" data-id="${t.id}">
@@ -2055,6 +2065,7 @@ function braindumpHTML(){
       </div>
       <input class="bd-title" data-act="title" value="${esc(t.projectName||"")}" placeholder="Task\u2026" ${dis}>
       <textarea class="bd-notes" data-act="notes" placeholder="Notes\u2026" rows="2" ${dis}>${esc(t.notes||"")}</textarea>
+      <div class="bd-duerow ${t.dueDate&&t.dueDate<today?'over':''}"><span class="bd-due-lbl">Due</span><input type="date" class="bd-date" data-act="due" value="${esc(t.dueDate||'')}" ${dis}></div>
       <div class="bd-acts">
         <button class="bd-btn convert" data-act="convert" title="Turn into a tracked deliverable for List / Calendar" ${dis}>\u2197 Convert</button>
         <button class="ic del" data-act="del" title="Delete" ${dis}>${TRASH}</button>
@@ -2079,13 +2090,15 @@ function bindBraindump(scope){
     const asg=n.querySelector('[data-act="assign"]');if(asg)asg.onchange=()=>assignSticky(id,asg.value);
     const tt=n.querySelector('[data-act="title"]');if(tt){tt.onchange=()=>saveStickyField(id,"projectName",tt.value);tt.onkeydown=e=>{if(e.key==="Enter")tt.blur();};}
     const nt=n.querySelector('[data-act="notes"]');if(nt)nt.onchange=()=>saveStickyField(id,"notes",nt.value);
+    const dd=n.querySelector('[data-act="due"]');if(dd)dd.onchange=()=>saveStickyField(id,"dueDate",dd.value);
   });
 }
 async function addSticky(){
   if(state.locked)return;
   const inp=$("#bdInput");if(!inp)return;const text=inp.value.trim();if(!text)return;
   const asg=$("#bdAsg")?$("#bdAsg").value:"";
-  const t={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:"braindump",clientAbbr:"",projectName:text,assignee:asg,notes:"",completed:false,completedAt:null,createdAt:Date.now()};
+  const due=$("#bdDue")?$("#bdDue").value:"";
+  const t={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:"braindump",clientAbbr:"",projectName:text,assignee:asg,notes:"",dueDate:due,completed:false,completedAt:null,createdAt:Date.now()};
   await backend.upsertTask(t);inp.value="";touchActivity();refreshUI();toast("Sticky note added");
 }
 async function assignSticky(id,name){if(state.locked)return;const t=state.tasks.find(x=>x.id===id);if(!t)return;await backend.upsertTask({...t,assignee:name});touchActivity();}
@@ -2098,7 +2111,7 @@ function convertSticky(id){
   curType=dt?dt.id:"longform";
   $("#editId").value=id;$("#addTitle").textContent="Convert to deliverable";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
-  $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value="";
+  $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value=t.notes||"";
   const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";
