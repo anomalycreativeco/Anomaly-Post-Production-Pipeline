@@ -58,6 +58,9 @@ a{color:inherit}
 .cal-nav button{width:32px}
 .cal-nav button,.cal-today{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;height:32px;padding:0 12px;font-weight:600;color:var(--ink);display:grid;place-items:center;font-size:15px}
 .cal-nav button:hover,.cal-today:hover{border-color:var(--sage);background:var(--sage-tint)}
+.cal-clearmiss{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;height:32px;padding:0 12px;font-weight:600;color:#7a1f1f;font-size:13.5px;cursor:pointer}
+.cal-clearmiss:hover{border-color:#7a1f1f;background:#7a1f1f;color:#fff}
+body.locked .cal-clearmiss{display:none}
 .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--sage-tint);border-bottom:1px solid var(--line)}
 .cal-dow span{padding:8px 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(120px,auto)}
@@ -1142,7 +1145,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.2.5", APP_BUILD="2026-06-28";
+const APP_VERSION="1.2.7", APP_BUILD="2026-07-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1296,6 +1299,7 @@ function calHeader(title){
     <h3>${title}</h3>
     <div class="cal-nav"><button data-cal="prev">‹</button><button data-cal="next">›</button></div>
     <button class="cal-today" data-cal="today">Today</button>
+    <button class="cal-clearmiss" data-cal="clearmiss" title="Dismiss all past missed markers for the team">Clear missed</button>
     <span class="spacer"></span>
     <div class="cal-seg">${["month","week"].map(mo=>`<button class="cseg ${state.calMode===mo?"active":""}" data-mode="${mo}">${mo[0].toUpperCase()+mo.slice(1)}</button>`).join("")}</div>
     <span class="seg-label">Color</span>
@@ -1350,7 +1354,7 @@ function calendarHTML(tasks){
   for(let i=0;i<42;i++){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
     const ds=ymd(d), other=d.getMonth()!==m, isToday=ds===todayLocal;
-    const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds);
+    const chips=(dated[ds]||[]).map(calChip).join("")+(other?"":ghostsFor(ds));
     cells+=`<div class="cal-cell ${other?"other":""} ${isToday?"today":""}" data-date="${ds}"><span class="cal-num">${d.getDate()}</span>${chips}</div>`;
   }
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
@@ -1444,6 +1448,7 @@ function bindCalendar(scope){
   });
   scope.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{
     const a=b.dataset.cal;
+    if(a==="clearmiss"){clearAllMissed();return;}
     if(state.calMode==="week"){const w=state.calWeek;
       if(a==="prev")state.calWeek=new Date(w.getFullYear(),w.getMonth(),w.getDate()-7);
       else if(a==="next")state.calWeek=new Date(w.getFullYear(),w.getMonth(),w.getDate()+7);
@@ -1803,6 +1808,20 @@ async function reassignMiss(abbr,fromDate,toDate){
 async function dismissMiss(abbr,ds){
   if(state.locked)return;
   SKIPS.add(skipKey(abbr,ds)); await backend.saveSkips(); refreshUI(); toast("Missed post dismissed");
+}
+async function clearAllMissed(){
+  if(state.locked)return;
+  const today=todayStr(), base=new Date(today+"T00:00:00"), keys=[];
+  for(let i=1;i<=120;i++){
+    const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()-i);
+    const ds=ymd(d), wd=d.getDay();
+    const existing=state.tasks.filter(t=>t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump");
+    state.clients.forEach(c=>{ if((SCHEDULE[c.abbr]||[]).includes(wd)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds)) keys.push(skipKey(c.abbr,ds)); });
+  }
+  if(!keys.length){toast("No missed markers to clear");return;}
+  if(!confirm("Clear "+keys.length+" missed marker"+(keys.length>1?"s":"")+" from past days?\n\nThey'll be dismissed for the whole team. Newly missed scheduled posts will still appear going forward.")) return;
+  keys.forEach(k=>SKIPS.add(k));
+  await backend.saveSkips(); touchActivity(); refreshUI(); toast("Cleared "+keys.length+" missed marker"+(keys.length>1?"s":""));
 }
 async function completeMiss(abbr,ds){
   if(state.locked)return;
