@@ -714,7 +714,59 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 .film-acts .ra{background:none;border:1px solid var(--line);color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px}
 .film-acts .ra:hover{background:var(--canvas);color:var(--ink)}
 .ver-foot{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.03em;margin:26px 0 8px;opacity:.75}
+.auth-gate{position:fixed;inset:0;z-index:9999;background:var(--sage,#92ABA7);display:grid;place-items:center;padding:20px}
+.auth-card{background:var(--paper,#fff);border-radius:20px;padding:34px 30px;width:min(400px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:center}
+.auth-brand{font-family:"Outfit",system-ui,sans-serif;font-weight:800;letter-spacing:.14em;font-size:26px;color:var(--ink,#1a1a1a)}
+.auth-title{font-family:"Outfit",system-ui,sans-serif;font-weight:600;color:var(--muted,#777);letter-spacing:.02em;margin:2px 0 20px;font-size:14px;text-transform:uppercase}
+.auth-sub{color:var(--ink,#222);font-size:14.5px;margin:0 0 16px}
+.auth-sub2{color:var(--muted,#777);font-size:13px;margin:0 0 18px;line-height:1.5}
+.auth-btn{width:100%;border:1px solid var(--line,#e2e2e2);background:var(--ink,#1a1a1a);color:#fff;border-radius:11px;height:46px;font-weight:600;font-size:14.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin:0}
+.auth-btn:hover{opacity:.92}
+.auth-btn.google{background:#fff;color:#1a1a1a;border-color:#dadce0}
+.auth-btn.google .g-dot{width:16px;height:16px;border-radius:50%;background:conic-gradient(#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0)}
+.auth-btn.ghost{background:transparent;color:var(--ink,#222);border-color:var(--line,#ddd)}
+.auth-or{display:flex;align-items:center;gap:12px;color:var(--muted,#999);font-size:12px;margin:14px 0}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line,#e6e6e6)}
+.auth-input{width:100%;border:1px solid var(--line,#ddd);border-radius:11px;height:46px;padding:0 14px;font-size:14.5px;font-family:inherit;margin-bottom:10px;background:var(--canvas,#fafafa);color:var(--ink,#222);box-sizing:border-box}
+.auth-msg{margin-top:12px;font-size:13px;color:var(--sage-deep,#3f7457);min-height:18px}
+.auth-msg.err{color:var(--red,#c0392b)}
+.perm-h{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px}
+.perm-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.perm-row{display:flex;align-items:center;gap:8px;background:var(--canvas);border-radius:9px;padding:7px 10px}
+.perm-row.owner{background:var(--sage-tint,#eef3f2)}
+.perm-email{flex:1 1 auto;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.owner-tag{font-size:11px;font-weight:700;color:var(--sage-deep,#3f7457);text-transform:uppercase;letter-spacing:.03em}
+.perm-sel{flex:0 0 130px;height:34px;font-size:13px}
+.perm-del{flex:0 0 auto}
+.perm-add{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.perm-empty{color:var(--muted);font-size:13px;padding:8px 2px}
+#addScrim.ro .typepick{pointer-events:none;opacity:.6}
+#addScrim.ro .mb input[readonly],#addScrim.ro .mb textarea[readonly]{background:var(--canvas);cursor:text}
+#addScrim.ro .mb select[disabled]{opacity:.75}
 </style>
+
+<div id="authGate" class="auth-gate" style="display:none">
+  <div class="auth-card">
+    <div class="auth-brand">ANOMALY</div>
+    <div class="auth-title">Editing Pipeline</div>
+    <div id="authSignin">
+      <p class="auth-sub">Sign in to access the pipeline.</p>
+      <button class="auth-btn google" id="authGoogle" type="button"><span class="g-dot"></span>Continue with Google</button>
+      <div class="auth-or"><span>or</span></div>
+      <input class="auth-input" id="authEmail" type="email" placeholder="you@company.com" autocomplete="email">
+      <button class="auth-btn" id="authLink" type="button">Email me a sign-in link</button>
+      <div class="auth-msg" id="authMsg"></div>
+    </div>
+    <div id="authNorole" style="display:none">
+      <p class="auth-sub">Signed in as <b id="authWho"></b> — but you don't have access yet.</p>
+      <p class="auth-sub2">Ask an admin (daniel@ or info@anomalycreativestudio.com) to grant you access, then reload this page.</p>
+      <button class="auth-btn ghost" id="authSignout2" type="button">Sign out</button>
+    </div>
+    <div id="authError" style="display:none">
+      <p class="auth-sub">Couldn't start sign-in. Check your connection and reload. If it keeps failing, sign-in may not be enabled yet in Firebase.</p>
+    </div>
+  </div>
+</div>
 
 <div class="topbar">
   <div class="brand">
@@ -725,6 +777,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
   <div class="spacer"></div>
   <button class="btn icon-only" id="lockBtn" title="View only" aria-label="Lock state" style="display:none"></button>
   <button class="btn icon-only bell-btn" id="bellBtn" title="My to-do" aria-label="My to-do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-badge" id="bellBadge" style="display:none">0</span></button>
+  <button class="btn icon-only" id="signOutBtn" title="Sign out" aria-label="Sign out" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
   <button class="btn icon-only" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme"></button>
 </div>
 
@@ -990,6 +1043,8 @@ const backend={
   async saveTimezone(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","timezone"),{list:PROJECT_TZ?[PROJECT_TZ]:[]});else LS.set(LK_TZ,PROJECT_TZ||"");},
   async savePublish(v,nonce){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","appversion"),{list:[String(v),nonce!=null?String(nonce):""]});},
   async saveAdmin(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","admin"),{list:ADMIN_HASH?[ADMIN_HASH]:[]});else LS.set("acc_admin_hash",ADMIN_HASH||"");},
+  async setRole(email,role){email=email.toLowerCase();if(fb())await FBSDK.setDoc(FBSDK.doc(db,"roles",email),{role,at:Date.now()});else{ROLES[email]=role;LS.set("acc_roles",ROLES);applyRole();refreshUI();}},
+  async removeRole(email){email=email.toLowerCase();if(fb())await FBSDK.deleteDoc(FBSDK.doc(db,"roles",email));else{delete ROLES[email];LS.set("acc_roles",ROLES);applyRole();refreshUI();}},
 };
 
 /* ============ state ============ */
@@ -1006,6 +1061,12 @@ function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<
 
 /* ===== auto-update + admin ===== */
 let ADMIN_HASH=null, APPVER_NONCE=null;
+const OWNERS=["daniel@anomalycreativestudio.com","info@anomalycreativestudio.com"];
+let AUTHSDK=null, auth=null, AUTH_USER=null, MYEMAIL="", MYROLE="none";
+let ROLES={}; let dataStarted=false;
+function resolveRole(email){email=(email||"").toLowerCase();if(OWNERS.includes(email))return "admin";return ROLES[email]||"none";}
+function canEdit(){return MYROLE==="manager"||MYROLE==="admin";}
+function roleLabel(r){return r==="admin"?"Admin":r==="manager"?"Manager":r==="contractor"?"Contractor":"No access";}
 let ME="";
 function cmpVer(a,b){const pa=String(a).split(".").map(n=>parseInt(n,10)||0),pb=String(b).split(".").map(n=>parseInt(n,10)||0);for(let i=0;i<Math.max(pa.length,pb.length);i++){const x=pa[i]||0,y=pb[i]||0;if(x>y)return 1;if(x<y)return -1;}return 0;}
 function forceReload(tag){
@@ -1024,19 +1085,10 @@ function handleVersionDoc(list){
   if(APPVER_NONCE===null){APPVER_NONCE=nonce;}
   else if(nonce&&nonce!==APPVER_NONCE){APPVER_NONCE=nonce;forceReload("n:"+nonce);}
 }
-function isAdmin(){return !!state.admin;}
-function tryAdminUnlock(){
-  const el=$("#admEnter"); if(!el)return; const pw=el.value.trim();
-  if(!ADMIN_HASH){toast("No admin password set yet");return;}
-  if(hashPw(pw)===ADMIN_HASH){state.admin=true;try{sessionStorage.setItem("acc_admin","1");}catch(e){}toast("Admin controls unlocked");render();}
-  else toast("Incorrect password");
-}
-function adminLock(){state.admin=false;try{sessionStorage.removeItem("acc_admin");}catch(e){}toast("Admin locked");render();}
-async function setAdminPw(){
-  const el=$("#admPw"); if(!el)return; const pw=el.value.trim();
-  if(pw.length<4){toast("Use at least 4 characters");return;}
-  ADMIN_HASH=hashPw(pw);await backend.saveAdmin();toast("Admin password saved");afterConfigChange();
-}
+function isAdmin(){return MYROLE==="admin";}
+async function setRole(email,role){email=(email||"").trim().toLowerCase();if(!email||!/.+@.+\..+/.test(email)){toast("Enter a valid email");return;}if(OWNERS.includes(email)){toast("That address is a permanent owner");return;}if(!isAdmin()){toast("Admins only");return;}await backend.setRole(email,role);toast(roleLabel(role)+" access set for "+email);}
+async function removeRoleFor(email){if(!isAdmin())return;if(OWNERS.includes(email)){toast("Owners can't be removed");return;}await backend.removeRole(email);toast("Access removed for "+email);}
+async function doSignOut(){try{if(auth&&AUTHSDK)await AUTHSDK.signOut(auth);}catch(e){}}
 async function adminForceReloadAll(){
   if(!isAdmin())return;
   if(!fb()){toast("Force-reload works on the live site only");return;}
@@ -1080,6 +1132,7 @@ function initLocal(){
   state.clients=cl; state.tasks=tk;
   SEC_HASH=LS.get(LK_SEC,"")||null;
   ADMIN_HASH=LS.get("acc_admin_hash","")||null;
+  ROLES=LS.get("acc_roles",{})||{}; MYEMAIL="preview@local"; MYROLE="admin"; state.admin=true;
   SCHEDULE=Object.fromEntries((LS.get(LK_SCHED,[])||[]).map(e=>[e.abbr,e.days||[]]));
   SKIPS=new Set(LS.get(LK_SKIPS,[])||[]);
   DOCS=LS.get("acc_docs",[])||[];
@@ -1093,23 +1146,40 @@ async function initFirebase(){
   try{
     const appMod=await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
     const fsMod=await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    AUTHSDK=await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
     FBSDK=fsMod;
-    const {getFirestore,collection,onSnapshot,getDocs,doc,writeBatch}=fsMod;
-    const app=appMod.initializeApp(FIREBASE_CONFIG); db=getFirestore(app); fbReady=true;
+    const app=appMod.initializeApp(FIREBASE_CONFIG); db=FBSDK.getFirestore(app); fbReady=true;
+    auth=AUTHSDK.getAuth(app);
     try{STSDK=await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");storage=STSDK.getStorage(app);}catch(e){console.warn("Storage init failed",e);}
+    try{ if(AUTHSDK.isSignInWithEmailLink(auth,location.href)){ let em=LS.get("acc_emaillink","")||""; if(!em){em=(window.prompt&&window.prompt("Confirm the email you used to sign in"))||"";} if(em){await AUTHSDK.signInWithEmailLink(auth,em,location.href);LS.set("acc_emaillink","");history.replaceState(null,"",location.pathname);} } }catch(e){console.warn("email link",e);toast("Sign-in link problem — request a new one");}
+    AUTHSDK.onAuthStateChanged(auth, async (user)=>{
+      if(!user){ AUTH_USER=null; MYEMAIL=""; MYROLE="none"; showAuthGate("signin"); return; }
+      AUTH_USER=user; MYEMAIL=(user.email||"").toLowerCase();
+      try{ const rs=await FBSDK.getDocs(FBSDK.collection(db,"roles")); ROLES={}; rs.docs.forEach(d=>{ROLES[d.id.toLowerCase()]=(d.data()||{}).role||"contractor";}); }catch(e){ROLES={};}
+      MYROLE=resolveRole(MYEMAIL);
+      if(MYROLE==="none"){ showAuthGate("norole"); return; }
+      hideAuthGate(); applyRole();
+      if(!dataStarted){ dataStarted=true; startData(); } else { refreshUI(); }
+    });
+  }catch(e){console.error("Firebase error:",e);setSyncStatus("err");fbReady=false;showAuthGate("error");}
+}
+async function startData(){
+  const {collection,onSnapshot,getDocs,doc,writeBatch,setDoc}=FBSDK;
+  try{
     const snap=await getDocs(collection(db,"clients"));
     if(snap.empty){const b=writeBatch(db);SEED_CLIENTS.forEach(c=>b.set(doc(db,"clients",c.abbr),c));await b.commit();}
     const cfg=await getDocs(collection(db,"config")), have=new Set(cfg.docs.map(d=>d.id));
     const seeds={editors:EDITORS_LIST,categories:CATEGORIES,types:TYPES};
-    for(const k of Object.keys(seeds)){if(!have.has(k))await FBSDK.setDoc(doc(db,"config",k),{list:seeds[k]});}
-    if(!have.has("appversion"))await FBSDK.setDoc(doc(db,"config","appversion"),{list:[APP_VERSION,""]});
-    onSnapshot(collection(db,"config"),s=>{
-      s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="skips")SKIPS=new Set(list||[]);else if(d.id==="documents")DOCS=list||[];else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
-      rebuildConfigUI();ensureDailyDue();ensureFilmingType();ensureBraindumpType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
-    },()=>setSyncStatus("err"));
-    onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
-    onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
-  }catch(e){console.error("Firebase error:",e);setSyncStatus("err");fbReady=false;initLocal();}
+    for(const k of Object.keys(seeds)){if(!have.has(k))await setDoc(doc(db,"config",k),{list:seeds[k]});}
+    if(!have.has("appversion"))await setDoc(doc(db,"config","appversion"),{list:[APP_VERSION,""]});
+  }catch(e){console.warn("seed skipped (rules or perms)",e);}
+  onSnapshot(collection(db,"roles"),s=>{ROLES={};s.docs.forEach(d=>{ROLES[d.id.toLowerCase()]=(d.data()||{}).role||"contractor";});const nr=resolveRole(MYEMAIL);if(nr!==MYROLE){MYROLE=nr;applyRole();}refreshUI();},()=>{});
+  onSnapshot(collection(db,"config"),s=>{
+    s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="skips")SKIPS=new Set(list||[]);else if(d.id==="documents")DOCS=list||[];else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
+    rebuildConfigUI();ensureDailyDue();ensureFilmingType();ensureBraindumpType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
+  },()=>setSyncStatus("err"));
+  onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
+  onSnapshot(collection(db,"tasks"),s=>{state.tasks=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
 }
 async function ensureFilmingType(){
   if(TYPES.find(t=>t.id==="filming"))return;
@@ -1149,7 +1219,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="1.3.4", APP_BUILD="2026-07-01";
+const APP_VERSION="1.4.0", APP_BUILD="2026-07-03";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1912,6 +1982,7 @@ function openAdd(prefillDate,prefillClient){
   $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
   $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";const del=$("#delEntry");if(del){del.style.display="none";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
+  setModalRO(false);
   $("#addScrim").classList.add("open");
 }
 const RECUR_LABEL={none:"One-off",weekly:"Weekly",biweekly:"Every 2 weeks",monthly:"Monthly",bimonthly:"Every 2 months",quarterly:"Quarterly"};
@@ -2175,15 +2246,21 @@ function bindFilming(board){
   board.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEdit(b.dataset.edit));
   board.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delTask(b.dataset.del));
 }
+function setModalRO(ro){
+  ro=!!ro; const scrim=$("#addScrim"); if(scrim)scrim.classList.toggle("ro",ro);
+  ["fClient","fName","fAssignee","fDue","fNotes","fProject","fFootage","fAudio"].forEach(fid=>{const el=$("#"+fid);if(!el)return;if(el.tagName==="SELECT")el.disabled=ro;else el.readOnly=ro;});
+  ["fDelivered","fRecur","fRevision"].forEach(fid=>{const el=$("#"+fid);if(el)el.disabled=ro;});
+}
 function openEdit(id){
-  if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
-  $("#editId").value=id;$("#addTitle").textContent="Edit Entry";
+  const ro=state.locked;
+  $("#editId").value=id;$("#addTitle").textContent=ro?"View entry":"Edit Entry";
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
   const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;
-  const de=$("#dupEntry");if(de)de.style.display="";const del=$("#delEntry");if(del){del.style.display="";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
+  const de=$("#dupEntry");if(de)de.style.display=ro?"none":"";const del=$("#delEntry");if(del){del.style.display=ro?"none":"";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
+  setModalRO(ro);
   $("#addScrim").classList.add("open");
 }
 async function saveEntry(){
@@ -2315,31 +2392,32 @@ function settingsHTML(){
           <span class="set-hint">Export saves a spreadsheet backup of active projects; import adds or updates from one.</span>
         </div>
       </div>
-      <div class="card set-card set-wide">
-        <div class="card-h">Admin controls${state.admin?" · unlocked":""}</div>
-        <div class="set-add">
-          ${state.admin ? `
-          <div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px">
-            <button class="btn primary" id="admForce">Force all sessions to reload now</button>
-            <button class="btn" id="admRepub">Re-publish v${APP_VERSION}</button>
-            <button class="btn" id="admLock">Lock admin</button>
+      ${isAdmin() ? `<div class="card set-card set-wide">
+        <div class="card-h">Admin console</div>
+        <div class="set-add" style="flex-direction:column;align-items:stretch;gap:16px">
+          <div>
+            <div class="perm-h">Team access</div>
+            <div class="perm-list">
+              ${OWNERS.map(o=>`<div class="perm-row owner"><span class="perm-email">${esc(o)}</span><span class="owner-tag">Owner · Admin</span></div>`).join("")}
+              ${Object.keys(ROLES).sort().map(em=>`<div class="perm-row" data-perm="${esc(em)}"><span class="perm-email">${esc(em)}</span><select class="inp perm-sel" data-role="${esc(em)}"><option value="contractor"${ROLES[em]==="contractor"?" selected":""}>Contractor</option><option value="manager"${ROLES[em]==="manager"?" selected":""}>Manager</option><option value="admin"${ROLES[em]==="admin"?" selected":""}>Admin</option></select><button class="ic del perm-del" data-permdel="${esc(em)}" title="Remove access">${TRASH}</button></div>`).join("")||`<div class="perm-empty">No one added yet — add a teammate below.</div>`}
+            </div>
+            <div class="perm-add">
+              <input class="inp" id="permEmail" type="email" placeholder="teammate@email.com" style="flex:2 1 200px">
+              <select class="inp" id="permRole" style="flex:1 1 130px"><option value="contractor">Contractor</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+              <button class="btn primary" id="permAdd">Add</button>
+            </div>
+            <span class="set-hint">Contractors view &amp; copy links only. Managers do everything except this console. Admins get this console too. Owners are permanent admins.</span>
           </div>
-          <div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-            <input class="inp" id="admPw" type="password" placeholder="${ADMIN_HASH?"Change admin password":"Set admin password"}" autocomplete="new-password" style="flex:1 1 200px">
-            <button class="btn" id="admSet">${ADMIN_HASH?"Change":"Set"} password</button>
+          <div>
+            <div class="perm-h">Session controls</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <button class="btn primary" id="admForce">Force all sessions to reload now</button>
+              <button class="btn" id="admRepub">Re-publish v${APP_VERSION}</button>
+            </div>
+            <span class="set-hint">Instantly refreshes every open copy running v${APP_VERSION} or newer, anywhere.</span>
           </div>
-          <span class="set-hint">“Force all sessions to reload” instantly refreshes every open copy running v${APP_VERSION} or newer, anywhere in the world. Copies opened before auto-update existed must be hard-refreshed once by hand.</span>
-          ` : (ADMIN_HASH ? `
-          <input class="inp" id="admEnter" type="password" placeholder="Admin password" autocomplete="off" style="flex:1 1 200px">
-          <button class="btn primary" id="admUnlock">Unlock admin</button>
-          <span class="set-hint">Enter the secret admin password to access manual overrides like forcing every session worldwide to reload.</span>
-          ` : `
-          <input class="inp" id="admPw" type="password" placeholder="Create a secret admin password" autocomplete="new-password" style="flex:1 1 200px">
-          <button class="btn primary" id="admSet">Create admin password</button>
-          <span class="set-hint">Set a private admin password to unlock manual overrides — force-reload all sessions worldwide and re-publish the current version. Keep it secret.</span>
-          `)}
         </div>
-      </div>
+      </div>` : ""}
       <div class="card set-card set-wide">
         <div class="card-h">Weekly standup report</div>
         <div class="set-add">
@@ -2461,12 +2539,11 @@ function bindSettings(scope){
   const jsb=$("#jarSave");if(jsb)jsb.onclick=setJarvisEndpoint;
   const tzs=$("#tzSel");if(tzs)tzs.onchange=()=>setTimezone(tzs.value);
   const hc=$("#hideConflict");if(hc)hc.onchange=()=>{LS.set("acc_hide_conflict",hc.checked);toast(hc.checked?"Conflict warnings hidden":"Conflict warnings on");};
-  const au=$("#admUnlock");if(au)au.onclick=tryAdminUnlock;
-  const ae=$("#admEnter");if(ae)ae.onkeydown=e=>{if(e.key==="Enter")tryAdminUnlock();};
-  const aset=$("#admSet");if(aset)aset.onclick=setAdminPw;
   const aforce=$("#admForce");if(aforce)aforce.onclick=adminForceReloadAll;
   const arep=$("#admRepub");if(arep)arep.onclick=adminRepublish;
-  const alock=$("#admLock");if(alock)alock.onclick=adminLock;
+  const padd=$("#permAdd");if(padd)padd.onclick=async()=>{const e=$("#permEmail"),r=$("#permRole");if(!e||!r)return;const em=e.value.trim().toLowerCase();await setRole(em,r.value);e.value="";};
+  scope.querySelectorAll(".perm-sel").forEach(sel=>sel.onchange=()=>setRole(sel.dataset.role,sel.value));
+  scope.querySelectorAll(".perm-del").forEach(b=>b.onclick=()=>removeRoleFor(b.dataset.permdel));
   scope.querySelectorAll(".set-row[data-ed]").forEach(r=>{const nm=r.dataset.ed;
     r.querySelector('[data-act="edcolor"]').onchange=async e=>{const ed=EDITORS_LIST.find(x=>x.name===nm);if(ed){ed.color=e.target.value;await backend.saveEditors();afterConfigChange();}};
     r.querySelector('[data-act="edrm"]').onclick=async ()=>{if(!confirm(`Remove editor ${nm}?`))return;EDITORS_LIST=EDITORS_LIST.filter(x=>x.name!==nm);await backend.saveEditors();afterConfigChange();toast("Editor removed");};
@@ -2486,9 +2563,27 @@ function bindSettings(scope){
 
 const ICON_LOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const ICON_UNLOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.5"/></svg>`;
-function refreshLock(){
-  state.locked=false;
-  applyLockUI();
+function applyRole(){ MYROLE=resolveRole(MYEMAIL); state.admin=isAdmin(); refreshLock(); }
+function refreshLock(){ state.locked=(MYROLE==="contractor"); applyLockUI(); }
+function showAuthGate(mode){
+  const g=$("#authGate"); if(!g)return; g.style.display="grid";
+  const si=$("#authSignin"),nr=$("#authNorole"),er=$("#authError");
+  if(si)si.style.display=(mode==="signin")?"":"none";
+  if(nr)nr.style.display=(mode==="norole")?"":"none";
+  if(er)er.style.display=(mode==="error")?"":"none";
+  if(mode==="norole"){const w=$("#authWho");if(w)w.textContent=MYEMAIL;}
+}
+function hideAuthGate(){const g=$("#authGate");if(g)g.style.display="none";const so=$("#signOutBtn");if(so)so.style.display="";}
+async function signInGoogle(){
+  if(!AUTHSDK||!auth)return; const m=$("#authMsg");if(m){m.className="auth-msg";m.textContent="Opening Google\u2026";}
+  try{const p=new AUTHSDK.GoogleAuthProvider();p.setCustomParameters({prompt:"select_account"});await AUTHSDK.signInWithPopup(auth,p);}
+  catch(e){if(m){m.className="auth-msg err";m.textContent=(e&&e.code==="auth/popup-blocked")?"Popup blocked \u2014 allow popups and retry.":"Google sign-in failed \u2014 try the email link.";}}
+}
+async function sendEmailLink(){
+  if(!AUTHSDK||!auth)return; const em=($("#authEmail")?$("#authEmail").value:"").trim().toLowerCase(); const m=$("#authMsg");
+  if(!/.+@.+\..+/.test(em)){if(m){m.className="auth-msg err";m.textContent="Enter a valid email.";}return;}
+  try{const acs={url:location.href.split("#")[0].split("?")[0],handleCodeInApp:true};await AUTHSDK.sendSignInLinkToEmail(auth,em,acs);LS.set("acc_emaillink",em);if(m){m.className="auth-msg";m.textContent="Check "+em+" for your sign-in link.";}}
+  catch(e){if(m){m.className="auth-msg err";m.textContent="Couldn't send link \u2014 email sign-in may not be enabled yet.";}}
 }
 function applyLockUI(){
   document.body.classList.toggle("locked",state.locked);
@@ -2533,6 +2628,11 @@ function onStatClick(kind){
 }
 function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
+  const ag=$("#authGoogle");if(ag)ag.onclick=signInGoogle;
+  const al=$("#authLink");if(al)al.onclick=sendEmailLink;
+  const ae2=$("#authEmail");if(ae2)ae2.onkeydown=e=>{if(e.key==="Enter")sendEmailLink();};
+  const so2=$("#authSignout2");if(so2)so2.onclick=doSignOut;
+  const sob=$("#signOutBtn");if(sob)sob.onclick=doSignOut;
   const delBtn=$("#delEntry");let delTimer=null;if(delBtn)delBtn.onclick=async()=>{
     if(state.locked)return;const id=$("#editId").value;if(!id)return;const dl=$("#delLabel");
     if(!delBtn.classList.contains("armed")){delBtn.classList.add("armed");if(dl)dl.textContent="Confirm delete";clearTimeout(delTimer);delTimer=setTimeout(()=>{delBtn.classList.remove("armed");if(dl)dl.textContent="Delete";},3000);return;}
