@@ -740,6 +740,22 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 .perm-row{display:flex;align-items:center;gap:10px;background:var(--canvas);border-radius:10px;padding:9px 12px;min-height:46px}
 .perm-row.owner{background:var(--sage-tint,#eef3f2)}
 .perm-email{flex:1 1 auto;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.perm-email-inp{flex:1 1 auto;min-width:0;height:38px;font-size:13.5px;padding:0 10px}
+.tier{margin-bottom:10px}
+.tier-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 7px;display:flex;align-items:center;gap:7px}
+.tier-count{background:var(--canvas);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:10px;font-weight:700;color:var(--muted)}
+.perm-search{display:flex;align-items:center;gap:8px;background:var(--canvas);border:1px solid var(--line);border-radius:10px;padding:0 12px;margin-bottom:12px}
+.perm-search svg{width:16px;height:16px;color:var(--muted);flex:0 0 auto}
+.perm-search input{flex:1 1 auto;border:none;background:transparent;height:40px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;padding:0}
+.preview-badge{background:#c2607a;color:#fff;font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 9px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+.ac-wrap{display:flex;flex-direction:column;gap:10px}
+.ac-box{border:1px solid var(--line);border-radius:12px;background:var(--paper);overflow:hidden}
+.ac-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--canvas);border:none;padding:13px 15px;cursor:pointer;font-family:inherit;font-weight:600;font-size:14px;color:var(--ink);text-align:left}
+.ac-head:hover{filter:brightness(.97)}
+.ac-chev{width:18px;height:18px;flex:0 0 auto;transition:transform .2s;color:var(--muted)}
+.ac-box.open .ac-chev{transform:rotate(180deg)}
+.ac-body{display:none;padding:14px 15px;flex-direction:column;gap:10px}
+.ac-box.open .ac-body{display:flex}
 .owner-tag{font-size:11px;font-weight:700;color:var(--sage-deep,#3f7457);text-transform:uppercase;letter-spacing:.03em}
 .perm-sel{flex:0 0 152px;height:auto;min-height:42px;line-height:1.3;padding:9px 12px;font-size:13.5px}
 .perm-del{flex:0 0 auto}
@@ -784,6 +800,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
     <div class="bt"><span class="b1">Anomaly</span><span class="b2">Editing Pipeline</span></div>
   </div>
   <span class="ver-badge" id="verBadge" title=""></span>
+  <span class="preview-badge" id="previewBadge" style="display:none">Preview · read-only</span>
   <div class="spacer"></div>
   <button class="btn icon-only" id="lockBtn" title="View only" aria-label="Lock state" style="display:none"></button>
   <button class="btn icon-only bell-btn" id="bellBtn" title="My to-do" aria-label="My to-do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-badge" id="bellBadge" style="display:none">0</span></button>
@@ -1073,7 +1090,8 @@ function hashPw(str){let h1=0xdeadbeef,h2=0x41c6ce57;str=SALT+str;for(let i=0;i<
 let ADMIN_HASH=null, APPVER_NONCE=null;
 const OWNERS=["daniel@anomalycreativestudio.com","info@anomalycreativestudio.com"];
 let AUTHSDK=null, auth=null, AUTH_USER=null, MYEMAIL="", MYROLE="none";
-let ROLES={}; let dataStarted=false;
+let ROLES={}; let dataStarted=false; let PREVIEW_MODE=false;
+function isGuest(){return MYROLE==="guest";}
 function resolveRole(email){email=(email||"").toLowerCase();if(OWNERS.includes(email))return "admin";return ROLES[email]||"none";}
 function canEdit(){return MYROLE==="manager"||MYROLE==="admin";}
 function roleLabel(r){return r==="admin"?"Admin":r==="manager"?"Manager":r==="contractor"?"Contractor":"No access";}
@@ -1098,6 +1116,33 @@ function handleVersionDoc(list){
 function isAdmin(){return MYROLE==="admin";}
 async function setRole(email,role){email=(email||"").trim().toLowerCase();if(!email||!/.+@.+\..+/.test(email)){toast("Enter a valid email");return;}if(OWNERS.includes(email)){toast("That address is a permanent owner");return;}if(!isAdmin()){toast("Admins only");return;}await backend.setRole(email,role);toast(roleLabel(role)+" access set for "+email);}
 async function removeRoleFor(email){if(!isAdmin())return;if(OWNERS.includes(email)){toast("Owners can't be removed");return;}await backend.removeRole(email);toast("Access removed for "+email);}
+async function renameRole(oldEmail,newEmail){
+  oldEmail=(oldEmail||"").trim().toLowerCase(); newEmail=(newEmail||"").trim().toLowerCase();
+  if(!isAdmin())return;
+  if(!newEmail||oldEmail===newEmail){refreshUI();return;}
+  if(!/.+@.+\..+/.test(newEmail)){toast("Enter a valid email");refreshUI();return;}
+  if(OWNERS.includes(newEmail)){toast("That address is a permanent owner");refreshUI();return;}
+  if(ROLES[newEmail]){toast("That email is already on the list");refreshUI();return;}
+  const role=ROLES[oldEmail]||"contractor";
+  await backend.setRole(newEmail,role);
+  await backend.removeRole(oldEmail);
+  toast("Updated to "+newEmail);
+}
+function filterPerms(q){
+  q=(q||"").trim().toLowerCase();
+  document.querySelectorAll(".ac-box .tier").forEach(tier=>{
+    let vis=0;
+    tier.querySelectorAll(".perm-row").forEach(row=>{
+      let email=row.dataset.perm||"";
+      if(!email){const pe=row.querySelector(".perm-email");email=pe?pe.textContent:"";}
+      const show=!q||email.toLowerCase().includes(q);
+      row.style.display=show?"":"none";
+      if(show)vis++;
+    });
+    tier.style.display=vis?"":"none";
+    const c=tier.querySelector(".tier-count");if(c)c.textContent=vis;
+  });
+}
 async function doSignOut(){if(!USE_FB){showAuthGate("signin");return;}try{if(auth&&AUTHSDK)await AUTHSDK.signOut(auth);}catch(e){}}
 async function adminForceReloadAll(){
   if(!isAdmin())return;
@@ -1114,6 +1159,7 @@ async function adminRepublish(){
 }
 
 async function init(){
+  PREVIEW_MODE=/[?&]preview=1/.test(location.search||"");
   state.theme=LS.get("acc_theme","light");
   document.documentElement.setAttribute("data-theme",state.theme);
   wireUp(); setThemeIcon();
@@ -1142,14 +1188,15 @@ function initLocal(){
   state.clients=cl; state.tasks=tk;
   SEC_HASH=LS.get(LK_SEC,"")||null;
   ADMIN_HASH=LS.get("acc_admin_hash","")||null;
-  ROLES=LS.get("acc_roles",{})||{}; MYEMAIL="preview@local"; MYROLE="admin"; state.admin=true;
+  ROLES=LS.get("acc_roles",{})||{}; MYEMAIL="preview@local";
+  if(PREVIEW_MODE){ MYROLE="guest"; state.admin=false; } else { MYROLE="admin"; state.admin=true; }
   SCHEDULE=Object.fromEntries((LS.get(LK_SCHED,[])||[]).map(e=>[e.abbr,e.days||[]]));
   SKIPS=new Set(LS.get(LK_SKIPS,[])||[]);
   DOCS=LS.get("acc_docs",[])||[];
   REPORT_RECIP=LS.get(LK_REPORT,[])||[];
   JARVIS_ENDPOINT=LS.get(LK_JARVIS,"")||"";
   PROJECT_TZ=LS.get(LK_TZ,"")||"";
-  rebuildConfigUI(); ensureDailyDue(); ensureFilmingType();ensureBraindumpType(); setSyncStatus("local"); refreshUI(); refreshLock(); showAuthGate("signin");
+  rebuildConfigUI(); ensureDailyDue(); ensureFilmingType();ensureBraindumpType(); setSyncStatus("local"); refreshUI(); refreshLock(); if(!PREVIEW_MODE) showAuthGate("signin");
 }
 async function initFirebase(){
   setSyncStatus("connecting");
@@ -1163,8 +1210,17 @@ async function initFirebase(){
     try{STSDK=await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js");storage=STSDK.getStorage(app);}catch(e){console.warn("Storage init failed",e);}
     try{ if(AUTHSDK.isSignInWithEmailLink(auth,location.href)){ let em=LS.get("acc_emaillink","")||""; if(!em){em=(window.prompt&&window.prompt("Confirm the email you used to sign in"))||"";} if(em){await AUTHSDK.signInWithEmailLink(auth,em,location.href);LS.set("acc_emaillink","");history.replaceState(null,"",location.pathname);} } }catch(e){console.warn("email link",e);toast("Sign-in link problem — request a new one");}
     AUTHSDK.onAuthStateChanged(auth, async (user)=>{
-      if(!user){ AUTH_USER=null; MYEMAIL=""; MYROLE="none"; showAuthGate("signin"); return; }
-      AUTH_USER=user; MYEMAIL=(user.email||"").toLowerCase();
+      if(!user){
+        if(PREVIEW_MODE){ try{await AUTHSDK.signInAnonymously(auth);}catch(e){console.warn("anon signin",e);showAuthGate("error");} return; }
+        AUTH_USER=null; MYEMAIL=""; MYROLE="none"; showAuthGate("signin"); return;
+      }
+      AUTH_USER=user;
+      if(PREVIEW_MODE || user.isAnonymous){
+        MYEMAIL=""; MYROLE="guest"; state.admin=false; hideAuthGate(); refreshLock();
+        if(!dataStarted){ dataStarted=true; startData(); } else { refreshUI(); }
+        return;
+      }
+      MYEMAIL=(user.email||"").toLowerCase();
       try{ const rs=await FBSDK.getDocs(FBSDK.collection(db,"roles")); ROLES={}; rs.docs.forEach(d=>{ROLES[d.id.toLowerCase()]=(d.data()||{}).role||"contractor";}); }catch(e){ROLES={};}
       MYROLE=resolveRole(MYEMAIL);
       if(MYROLE==="none"){ showAuthGate("norole"); return; }
@@ -1175,15 +1231,15 @@ async function initFirebase(){
 }
 async function startData(){
   const {collection,onSnapshot,getDocs,doc,writeBatch,setDoc}=FBSDK;
-  try{
+  if(!isGuest()){ try{
     const snap=await getDocs(collection(db,"clients"));
     if(snap.empty){const b=writeBatch(db);SEED_CLIENTS.forEach(c=>b.set(doc(db,"clients",c.abbr),c));await b.commit();}
     const cfg=await getDocs(collection(db,"config")), have=new Set(cfg.docs.map(d=>d.id));
     const seeds={editors:EDITORS_LIST,categories:CATEGORIES,types:TYPES};
     for(const k of Object.keys(seeds)){if(!have.has(k))await setDoc(doc(db,"config",k),{list:seeds[k]});}
     if(!have.has("appversion"))await setDoc(doc(db,"config","appversion"),{list:[APP_VERSION,""]});
-  }catch(e){console.warn("seed skipped (rules or perms)",e);}
-  onSnapshot(collection(db,"roles"),s=>{ROLES={};s.docs.forEach(d=>{ROLES[d.id.toLowerCase()]=(d.data()||{}).role||"contractor";});const nr=resolveRole(MYEMAIL);if(nr!==MYROLE){MYROLE=nr;applyRole();}refreshUI();},()=>{});
+  }catch(e){console.warn("seed skipped (rules or perms)",e);} }
+  if(!isGuest()) onSnapshot(collection(db,"roles"),s=>{ROLES={};s.docs.forEach(d=>{ROLES[d.id.toLowerCase()]=(d.data()||{}).role||"contractor";});const nr=resolveRole(MYEMAIL);if(nr!==MYROLE){MYROLE=nr;applyRole();}refreshUI();},()=>{});
   onSnapshot(collection(db,"config"),s=>{
     s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="skips")SKIPS=new Set(list||[]);else if(d.id==="documents")DOCS=list||[];else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
     rebuildConfigUI();ensureDailyDue();ensureFilmingType();ensureBraindumpType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
@@ -1229,7 +1285,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.0.2", APP_BUILD="2026-07-03";
+const APP_VERSION="2.2.0", APP_BUILD="2026-07-03";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2401,72 +2457,91 @@ function settingsHTML(){
       <div class="set-add"><input class="inp" id="typLabel" placeholder="New edit type"><input type="color" class="swatch" id="typColor" value="#6b7fa8"><label class="set-due"><input type="checkbox" id="typDue" checked> Due date</label><button class="btn primary" id="typAdd">Add</button></div>
       <div class="set-list">${TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>{const u=state.tasks.filter(t=>t.type===tp.id).length;return `<div class="set-row" data-typ="${esc(tp.id)}"><input type="color" class="swatch" data-act="tcolor" value="${tp.color}"><input class="inp set-inp" data-act="tlabel" value="${esc(tp.label)}"><label class="set-due"><input type="checkbox" data-act="tdue" ${tp.due?"checked":""}> Uses due date</label><span class="set-used">${u} entr${u===1?"y":"ies"}</span><button class="ic del" data-act="trm" title="Remove" ${(u||TYPES.length<=1)?"disabled":""}>${TRASH}</button></div>`;}).join("")}</div>
     </div>
-      <div class="card set-card set-wide">
-        <div class="card-h">Data &amp; Backup</div>
-        <div class="set-add">
-          <button class="btn primary" id="exportCsv">Export active projects to CSV</button>
-          <label class="btn" style="cursor:pointer">Import from CSV<input type="file" id="importCsv" accept=".csv,text/csv" style="display:none"></label>
-          <span class="set-hint">Export saves a spreadsheet backup of active projects; import adds or updates from one.</span>
-        </div>
-      </div>
       ${isAdmin() ? `<div class="card set-card set-wide">
         <div class="card-h">Admin console</div>
-        <div class="set-add" style="flex-direction:column;align-items:stretch;gap:16px">
-          <div>
-            <div class="perm-h">Team access</div>
-            <div class="perm-list">
-              ${OWNERS.map(o=>`<div class="perm-row owner"><span class="perm-email">${esc(o)}</span><span class="owner-tag">Owner · Admin</span></div>`).join("")}
-              ${Object.keys(ROLES).sort().map(em=>`<div class="perm-row" data-perm="${esc(em)}"><span class="perm-email">${esc(em)}</span><select class="inp perm-sel" data-role="${esc(em)}"><option value="contractor"${ROLES[em]==="contractor"?" selected":""}>Contractor</option><option value="manager"${ROLES[em]==="manager"?" selected":""}>Manager</option><option value="admin"${ROLES[em]==="admin"?" selected":""}>Admin</option></select><button class="ic del perm-del" data-permdel="${esc(em)}" title="Remove access">${TRASH}</button></div>`).join("")||`<div class="perm-empty">No one added yet — add a teammate below.</div>`}
+        <div class="ac-wrap">
+          <div class="ac-box ${LS.get('acc_ac_team',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="team"><span>Team access</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div class="perm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input class="inp" id="permSearch" type="text" placeholder="Search emails\u2026" autocomplete="off"></div>
+              <div class="tier">
+                <div class="tier-h">Owners <span class="tier-count">${OWNERS.length}</span></div>
+                <div class="perm-list">
+                  ${OWNERS.map(o=>`<div class="perm-row owner"><span class="perm-email">${esc(o)}</span><span class="owner-tag">Permanent</span></div>`).join("")}
+                </div>
+              </div>
+              ${[["admin","Admins"],["manager","Managers"],["contractor","Contractors"]].map(g=>{const tier=g[0],label=g[1];const ppl=Object.keys(ROLES).filter(em=>ROLES[em]===tier).sort();if(!ppl.length)return "";return `<div class="tier"><div class="tier-h">${label} <span class="tier-count">${ppl.length}</span></div><div class="perm-list">${ppl.map(em=>`<div class="perm-row" data-perm="${esc(em)}"><input class="inp perm-email-inp" data-email="${esc(em)}" type="email" value="${esc(em)}"><select class="inp perm-sel" data-role="${esc(em)}"><option value="contractor"${ROLES[em]==="contractor"?" selected":""}>Contractor</option><option value="manager"${ROLES[em]==="manager"?" selected":""}>Manager</option><option value="admin"${ROLES[em]==="admin"?" selected":""}>Admin</option></select><button class="ic del perm-del" data-permdel="${esc(em)}" title="Remove access">${TRASH}</button></div>`).join("")}</div></div>`;}).join("")}
+              ${Object.keys(ROLES).length?"":`<div class="perm-empty">No one added beyond owners yet — add a teammate below.</div>`}
+              <div class="perm-add">
+                <input class="inp" id="permEmail" type="email" placeholder="teammate@email.com" style="flex:2 1 200px">
+                <select class="inp" id="permRole" style="flex:1 1 130px"><option value="contractor">Contractor</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+                <button class="btn primary" id="permAdd">Add</button>
+              </div>
+              <span class="set-hint">Contractors view &amp; copy links only. Managers do everything except this console. Admins get this console too. Owners are permanent admins. Edit an email inline to correct or change it.</span>
             </div>
-            <div class="perm-add">
-              <input class="inp" id="permEmail" type="email" placeholder="teammate@email.com" style="flex:2 1 200px">
-              <select class="inp" id="permRole" style="flex:1 1 130px"><option value="contractor">Contractor</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
-              <button class="btn primary" id="permAdd">Add</button>
-            </div>
-            <span class="set-hint">Contractors view &amp; copy links only. Managers do everything except this console. Admins get this console too. Owners are permanent admins.</span>
           </div>
-          <div>
-            <div class="perm-h">Session controls</div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <button class="btn primary" id="admForce">Force all sessions to reload now</button>
-              <button class="btn" id="admRepub">Re-publish v${APP_VERSION}</button>
+          <div class="ac-box ${LS.get('acc_ac_tz',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="tz"><span>Project time zone</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                <select class="inp" id="tzSel" style="flex:1 1 240px">${tzOptionsHTML()}</select>
+                <div class="tz-now" id="tzNow">${esc(fmtTZNow())}</div>
+              </div>
+              <span class="set-hint">Everyone shares this zone for “today”, due dates, and missed-post logic — independent of each device’s clock.</span>
             </div>
-            <span class="set-hint">Instantly refreshes every open copy running v${APP_VERSION} or newer, anywhere.</span>
           </div>
+          <div class="ac-box ${LS.get('acc_ac_jarvis',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="jarvis"><span>Jarvis AI &amp; email automation</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <input class="inp" id="jarUrl" type="url" placeholder="https://your-worker.workers.dev" value="${esc(JARVIS_ENDPOINT||"")}" style="flex:1 1 280px">
+                <button class="btn primary" id="jarSave">Save endpoint</button>
+              </div>
+              <span class="set-hint">Paste your Cloudflare Worker URL to switch Jarvis to the full Claude AI brain and enable automatic report emails. Leave blank to use the built-in offline brain.</span>
+            </div>
+          </div>
+          <div class="ac-box ${LS.get('acc_ac_standup',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="standup"><span>Weekly standup report</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <input class="inp" id="repTo" type="email" placeholder="To — Tyler's email" value="${esc(REPORT_RECIP[0]||"")}" style="flex:1 1 200px">
+                <input class="inp" id="repCc" type="email" placeholder="CC — your email" value="${esc(REPORT_RECIP[1]||"")}" style="flex:1 1 200px">
+                <button class="btn primary" id="repSave">Save recipients</button>
+              </div>
+              <span class="set-hint">At the start of each week Jarvis prepares a standup report and opens a pre-filled email to these recipients (also copied to your clipboard). Hands-off auto-send needs the worker add-on.</span>
+            </div>
+          </div>
+          <div class="ac-box ${LS.get('acc_ac_backup',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="backup"><span>Data &amp; backup</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button class="btn primary" id="exportCsv">Export active projects to CSV</button>
+                <label class="btn" style="cursor:pointer">Import from CSV<input type="file" id="importCsv" accept=".csv,text/csv" style="display:none"></label>
+              </div>
+              <span class="set-hint">Export saves a spreadsheet backup of active projects; import adds or updates from one.</span>
+            </div>
+          </div>
+          <div class="ac-box ${LS.get('acc_ac_session',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="session"><span>Session controls</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button class="btn primary" id="admForce">Force all sessions to reload now</button>
+                <button class="btn" id="admRepub">Re-publish v${APP_VERSION}</button>
+              </div>
+              <span class="set-hint">Instantly refreshes every open copy running v${APP_VERSION} or newer, anywhere.</span>
+            </div>
+          </div>
+
+          <div class="ac-box ${LS.get('acc_ac_preview',false)?'open':''}">
+            <button type="button" class="ac-head" data-acc="preview"><span>Preview / showcase link</span><svg class="ac-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="ac-body">
+              <div class="cprow"><input class="inp" id="previewLink" type="text" readonly value="${location.origin}${location.pathname}?preview=1"><button type="button" class="copybtn" id="previewCopy" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+              <span class="set-hint">Anyone with this link can browse the List and Calendar in read-only mode — no sign-in, and nothing can be changed. Great for showing people what you've built. It shows live data, and needs Anonymous sign-in enabled in Firebase (Authentication → Sign-in method → Anonymous → Enable).</span>
+            </div>
+          </div>
+
         </div>
       </div>` : ""}
-      <div class="card set-card set-wide">
-        <div class="card-h">Weekly standup report</div>
-        <div class="set-add">
-          <input class="inp" id="repTo" type="email" placeholder="To — Tyler\u2019s email" value="${esc(REPORT_RECIP[0]||"")}" style="flex:1 1 200px">
-          <input class="inp" id="repCc" type="email" placeholder="CC — your email" value="${esc(REPORT_RECIP[1]||"")}" style="flex:1 1 200px">
-          <button class="btn primary" id="repSave">Save recipients</button>
-          <span class="set-hint">At the start of each week Jarvis prepares a standup report and opens a pre-filled email to these recipients (full report is also copied to your clipboard). Fully hands-off auto-send needs a small server add-on.</span>
-        </div>
-      </div>
-      <div class="card set-card set-wide">
-        <div class="card-h">Jarvis AI &amp; auto-email (optional)</div>
-        <div class="set-add">
-          <input class="inp" id="jarUrl" type="url" placeholder="https://your-worker.workers.dev" value="${esc(JARVIS_ENDPOINT||"")}" style="flex:1 1 280px">
-          <button class="btn primary" id="jarSave">Save endpoint</button>
-          <span class="set-hint">Paste your Cloudflare Worker URL to switch Jarvis to the full Claude AI brain and enable the automatic Monday 9 AM report email. Leave blank to use the built-in offline brain.</span>
-        </div>
-      </div>
-      <div class="card set-card set-wide">
-        <div class="card-h">Project time zone</div>
-        <div class="set-add">
-          <select class="inp" id="tzSel" style="flex:1 1 240px">${tzOptionsHTML()}</select>
-          <div class="tz-now" id="tzNow">${esc(fmtTZNow())}</div>
-          <span class="set-hint">Everyone shares this zone for “today”, due dates, and missed-post logic — independent of each device’s clock. Change it if your team’s day should roll over somewhere other than ${esc(projTZ())}.</span>
-        </div>
-      </div>
-      <div class="card set-card set-wide">
-        <div class="card-h">Reschedule conflict alerts</div>
-        <div class="set-add">
-          <label class="chk"><input type="checkbox" id="hideConflict" ${LS.get("acc_hide_conflict",false)?"checked":""}> Silence the “reschedule was reverted” warning</label>
-          <span class="set-hint">This only hides the message. If a move keeps reverting, an older copy of the app is still open somewhere — refresh every tab and device to v${APP_VERSION} to actually fix it.</span>
-        </div>
-      </div>
       <div class="ver-foot">Anomaly Pipeline · v${APP_VERSION} · built ${APP_BUILD}</div>
   </div>`;
 }
@@ -2555,12 +2630,15 @@ function bindSettings(scope){
   const rsb=$("#repSave");if(rsb)rsb.onclick=setReportRecip;
   const jsb=$("#jarSave");if(jsb)jsb.onclick=setJarvisEndpoint;
   const tzs=$("#tzSel");if(tzs)tzs.onchange=()=>setTimezone(tzs.value);
-  const hc=$("#hideConflict");if(hc)hc.onchange=()=>{LS.set("acc_hide_conflict",hc.checked);toast(hc.checked?"Conflict warnings hidden":"Conflict warnings on");};
   const aforce=$("#admForce");if(aforce)aforce.onclick=adminForceReloadAll;
   const arep=$("#admRepub");if(arep)arep.onclick=adminRepublish;
   const padd=$("#permAdd");if(padd)padd.onclick=async()=>{const e=$("#permEmail"),r=$("#permRole");if(!e||!r)return;const em=e.value.trim().toLowerCase();await setRole(em,r.value);e.value="";};
   scope.querySelectorAll(".perm-sel").forEach(sel=>sel.onchange=()=>setRole(sel.dataset.role,sel.value));
   scope.querySelectorAll(".perm-del").forEach(b=>b.onclick=()=>removeRoleFor(b.dataset.permdel));
+  scope.querySelectorAll(".perm-email-inp").forEach(inp=>{inp.onchange=()=>renameRole(inp.dataset.email,inp.value);inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();inp.blur();}};});
+  scope.querySelectorAll(".ac-head").forEach(h=>h.onclick=()=>{const box=h.closest(".ac-box");const op=!box.classList.contains("open");box.classList.toggle("open",op);LS.set("acc_ac_"+h.dataset.acc,op);});
+  const pse=$("#permSearch");if(pse)pse.oninput=()=>filterPerms(pse.value);
+  const pcy=$("#previewCopy");if(pcy)pcy.onclick=()=>copyField("previewLink",pcy);
   scope.querySelectorAll(".set-row[data-ed]").forEach(r=>{const nm=r.dataset.ed;
     r.querySelector('[data-act="edcolor"]').onchange=async e=>{const ed=EDITORS_LIST.find(x=>x.name===nm);if(ed){ed.color=e.target.value;await backend.saveEditors();afterConfigChange();}};
     r.querySelector('[data-act="edrm"]').onclick=async ()=>{if(!confirm(`Remove editor ${nm}?`))return;EDITORS_LIST=EDITORS_LIST.filter(x=>x.name!==nm);await backend.saveEditors();afterConfigChange();toast("Editor removed");};
@@ -2581,7 +2659,7 @@ function bindSettings(scope){
 const ICON_LOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const ICON_UNLOCK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.5"/></svg>`;
 function applyRole(){ MYROLE=resolveRole(MYEMAIL); state.admin=isAdmin(); refreshLock(); }
-function refreshLock(){ state.locked=(MYROLE==="contractor"); applyLockUI(); }
+function refreshLock(){ state.locked=(MYROLE==="contractor"||MYROLE==="guest"); applyLockUI(); }
 let _tagTimer=null;
 function typeTagline(){
   const el=$("#authTagline"); if(!el)return;
@@ -2618,10 +2696,15 @@ async function sendEmailLink(){
 }
 function applyLockUI(){
   document.body.classList.toggle("locked",state.locked);
+  const guest=isGuest();
   const fab=$("#openAdd");if(fab)fab.style.display=state.locked?"none":"";
-  ["dashboard","delivery","settings"].forEach(v=>{const n=document.querySelector('[data-view="'+v+'"]');if(n)n.style.display=state.locked?"none":"";});
-  const lb=$("#lockBtn");if(lb){lb.style.display="none";lb.innerHTML=state.locked?ICON_LOCK:ICON_UNLOCK;lb.title=state.locked?"View only — tap to unlock editing":"Editing unlocked — tap to lock";}
-  if(state.locked && ["dashboard","delivery","settings"].includes(state.view)){state.view="list";document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view==="list"));render();}
+  const hide = guest ? ["dashboard","delivery","settings","filming","braindump","documents"] : (state.locked?["dashboard","delivery","settings"]:[]);
+  ["dashboard","delivery","settings","filming","braindump","documents"].forEach(v=>{const n=document.querySelector('[data-view="'+v+'"]');if(n)n.style.display=hide.includes(v)?"none":"";});
+  const bell=$("#bellBtn");if(bell)bell.style.display=guest?"none":"";
+  const so=$("#signOutBtn");if(so&&guest)so.style.display="none";
+  const pb=$("#previewBadge");if(pb)pb.style.display=guest?"":"none";
+  const lb=$("#lockBtn");if(lb){lb.style.display="none";lb.innerHTML=state.locked?ICON_LOCK:ICON_UNLOCK;lb.title=state.locked?"View only":"Editing unlocked";}
+  if(state.locked && hide.includes(state.view)){state.view="list";document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view==="list"));render();}
 }
 function openUnlock(){const sc=$("#lockScrim");if(!sc)return;const p=$("#lockPw");if(p)p.value="";const er=$("#lockErr");if(er)er.textContent="";sc.classList.add("open");setTimeout(()=>{const f=$("#lockPw");if(f)f.focus();},60);}
 function doUnlock(){
