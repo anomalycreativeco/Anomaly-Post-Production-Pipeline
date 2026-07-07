@@ -352,6 +352,51 @@ select.sel:hover{border-color:var(--sage)}
 .notes.clamped{cursor:pointer}
 .notes-toggle{background:none;border:none;padding:1px 0 0;color:var(--sage-deep,#3f7457);font-weight:600;font-size:12px;font-family:inherit;cursor:pointer}
 .notes-toggle:hover{text-decoration:underline}
+.home-wrap{max-width:none;padding:4px 2px 24px}
+.home-greet{margin:6px 2px 18px}
+.home-greet h1{font-family:"Outfit",system-ui,sans-serif;font-size:26px;font-weight:700;margin:0;color:var(--ink)}
+.home-date{color:var(--muted);font-size:14px;margin-top:2px}
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.home-grid{grid-template-columns:1fr}}
+.home-card{padding:16px 16px 12px;margin-bottom:14px}
+.home-h{font-family:"Outfit",system-ui,sans-serif;font-weight:700;font-size:15px;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.home-count{background:var(--canvas);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:700;color:var(--muted)}
+.home-idcard{border:1px solid var(--sage,#92ABA7)}
+.home-idsub{color:var(--muted);font-size:13px;margin:0 0 12px;line-height:1.5}
+.home-list{display:flex;flex-direction:column;gap:2px}
+.home-row{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:9px;cursor:pointer}
+.home-row:hover{background:var(--canvas)}
+.home-row.done{opacity:.55}
+.home-row.done .hr-title{text-decoration:line-through;text-decoration-color:var(--muted)}
+.home-row .cdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.hr-abbr{font-weight:700;font-size:12px;color:var(--muted);flex:0 0 auto;min-width:44px}
+.hr-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.hr-title{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hr-sub{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hr-done{color:var(--sage-deep,#3f7457);font-weight:800;flex:0 0 auto}
+.home-empty{color:var(--muted);font-size:13px;padding:10px 8px;font-style:italic}
+.home-bar-wrap{margin:2px 0 14px}
+.home-bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.home-bar-lbl{color:var(--ink);font-weight:600;font-size:13px}
+.home-bar-pct{color:var(--sage-deep,#3f7457);font-weight:800;font-size:15px}
+.home-bar{height:10px;background:var(--canvas);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.home-bar-fill{height:100%;background:var(--sage,#92ABA7);border-radius:999px;transition:width .4s ease;min-width:2px}
+.home-bar-fill.full{background:var(--sage-deep,#3f7457)}
+.home-bar-note{color:var(--muted);font-size:12px;margin-top:6px}
+.mc{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:4px}
+.mc-cell{border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;min-height:76px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mc-cell.today{border-color:var(--sage,#92ABA7);border-width:2px}
+.mc-cell.has{background:var(--sage,#92ABA7);border-color:var(--sage,#92ABA7);color:#fff;cursor:pointer}
+.mc-cell.has .mc-wd,.mc-cell.has .mc-day{color:#fff}
+.mc-cell.has:hover{filter:brightness(1.06)}
+.mc-wd{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.03em}
+.mc-day{font-size:18px;font-weight:700;color:var(--ink);line-height:1}
+.mc-runs{display:flex;flex-direction:column;gap:2px;margin-top:3px}
+.mc-run{font-size:10px;font-weight:800;letter-spacing:.02em}
+.mc-none{color:var(--muted);font-size:13px;font-style:italic;margin-top:8px}
+.home-today-min{padding-bottom:14px}
+.home-today-min .home-bar-wrap{margin-bottom:0}
+@media(max-width:560px){.mc{gap:4px}.mc-cell{min-height:64px;padding:6px 2px}.mc-day{font-size:16px}}
 
 .rowacts{display:flex;gap:4px;justify-content:flex-end}
 .ic{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);display:grid;place-items:center;transition:.12s}
@@ -868,7 +913,8 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 </div>
 
 <nav class="pagenav" id="bottomNav">
-  <button class="pnav active" data-view="list" title="List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>List</span></button>
+  <button class="pnav active" data-view="home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg><span>Home</span></button>
+  <button class="pnav" data-view="list" title="List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>List</span></button>
   <button class="pnav" data-view="calendar" title="Calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Calendar</span></button>
   <button class="pnav" data-view="dashboard" title="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span>Dashboard</span></button>
   <button class="pnav" data-view="filming" title="Footage Runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Filming</span></button>
@@ -1080,6 +1126,46 @@ const backend={
 };
 
 /* ============ state ============ */
+function seedDemo(){
+  const today=todayStr(), wd=new Date(today+"T00:00:00").getDay();
+  const eds=["Sam","Daniel","Eddie","Jessica","Tyler","Joeprey"];
+  const meEd=(ME&&eds.includes(ME))?ME:"Daniel"; ME=meEd; LS.set("acc_me",ME);
+  // schedule (drives ghost/templated posts): 12 clients due today's weekday
+  const schedToday=["BUPF","SFGE","OLYM","EMTA","TOPS","NEXT","TGDP","AMHA","JOSH","COLE","SOHO","VRCH"];
+  const sched={};
+  schedToday.forEach(ab=>sched[ab]=[wd,(wd+2)%7,(wd+4)%7]);
+  ["MCMD","DUCH","LTOL","CVRL","BEAC","RCHO"].forEach(ab=>sched[ab]=[(wd+1)%7,(wd+3)%7]);
+  SCHEDULE=sched; LS.set(LK_SCHED, Object.keys(sched).map(ab=>({abbr:ab,days:sched[ab]})));
+  const T=[]; let n=0;
+  const mk=o=>{n++;return Object.assign({id:"demo"+n,clientAbbr:"BUPF",assignee:"",projectName:"",type:"daily",dueDate:null,projectUrl:"",footageUrl:"",audioUrl:"",notes:"",delivered:false,recur:"none",completed:false,completedAt:null,createdAt:Date.now()-n*3600000},o);};
+  // team posts already out today (completed)
+  const doneT=[["BUPF","Tuesday reel drop"],["SFGE","Equipment demo — vertical"],["OLYM","Gym floor b-roll set"],["EMTA","Class promo cutdown"],["TOPS","Member spotlight"],["NEXT","Rehab tip short"],["TGDP","Podcast clip 1 of 5"],["AMHA","Brand day recap"]];
+  doneT.forEach((p,i)=>T.push(mk({clientAbbr:p[0],type:i%3===0?"clips":"daily",dueDate:today,assignee:eds[i%eds.length],projectName:p[1],completed:true,completedAt:Date.now()-(i+1)*1500000,delivered:i%2===0})));
+  // team post still open today
+  T.push(mk({clientAbbr:"JOSH",type:"clips",dueDate:today,assignee:"Tyler",projectName:"Hook test — 3 variations"}));
+  // MY editing today (open)
+  T.push(mk({clientAbbr:"MCMD",type:"longform",dueDate:today,assignee:meEd,projectName:"Concept-to-completion walkthrough",notes:"Client wants the intro tightened \u2014 first 5 seconds are the hook. Pull b-roll from the footage folder, match the music cut, and double-check the color pass before delivery. This one is going out on the main channel."}));
+  T.push(mk({clientAbbr:"DUNN",type:"clips",dueDate:today,assignee:meEd,projectName:"3 short-form cuts from the sit-down"}));
+  // team overdue + upcoming (calendar realism)
+  T.push(mk({clientAbbr:"DUCH",type:"longform",dueDate:addDaysStr(today,-1),assignee:"Jessica",projectName:"Founder interview V1 \u2014 client waiting"}));
+  T.push(mk({clientAbbr:"LTOL",type:"listings",dueDate:addDaysStr(today,-2),assignee:"Tyler",projectName:"MLS cut \u2014 agent needs ASAP"}));
+  T.push(mk({clientAbbr:"CVRL",type:"listings",dueDate:addDaysStr(today,2),assignee:"Sam",projectName:"3-bed listing \u2014 drone + interior"}));
+  T.push(mk({clientAbbr:"BEAC",type:"listings",dueDate:addDaysStr(today,4),assignee:"Eddie",projectName:"New build walkthrough"}));
+  // MY footage runs this week
+  T.push(mk({clientAbbr:"RCHO",type:"filming",dueDate:addDaysStr(today,1),assignee:meEd,projectName:"Property feature shoot"}));
+  T.push(mk({clientAbbr:"BEAC",type:"filming",dueDate:addDaysStr(today,3),assignee:meEd,projectName:"New build walkthrough shoot"}));
+  T.push(mk({clientAbbr:"DUCH",type:"filming",dueDate:addDaysStr(today,5),assignee:meEd,projectName:"Founder B-roll day"}));
+  // other footage (not mine)
+  T.push(mk({clientAbbr:"OLYM",type:"filming",dueDate:addDaysStr(today,2),assignee:"Sam",projectName:"Gym floor shoot"}));
+  // MY sticky notes (due/overdue + a couple)
+  T.push(mk({clientAbbr:"",type:"braindump",dueDate:addDaysStr(today,-2),assignee:meEd,projectName:"Send Tyler the updated brand kit"}));
+  T.push(mk({clientAbbr:"",type:"braindump",dueDate:today,assignee:meEd,projectName:"Reply to Amber about revision round"}));
+  T.push(mk({clientAbbr:"",type:"braindump",dueDate:addDaysStr(today,1),assignee:meEd,projectName:"Export thumbnails for the podcast batch"}));
+  T.push(mk({clientAbbr:"",type:"braindump",assignee:meEd,projectName:"Backlog: reorganize the shared footage drive"}));
+  T.push(mk({clientAbbr:"",type:"braindump",dueDate:addDaysStr(today,5),assignee:"Sam",projectName:"Team sync notes"}));
+  return T;
+}
+
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
 function workingMonth(){const d=new Date();d.setDate(d.getDate()+3);return new Date(d.getFullYear(),d.getMonth(),1);}
 let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",calMonth:workingMonth(),calWeek:weekStart(new Date())};
@@ -1170,7 +1256,7 @@ async function init(){
   wireUp(); setThemeIcon();
   const vb=$("#verBadge"); if(vb){vb.textContent="v"+APP_VERSION; vb.title="built "+APP_BUILD;}
   setInterval(()=>{const el=document.getElementById("tzNow"); if(el) el.textContent=fmtTZNow();},1000);
-  const savedView=LS.get(LK_VIEW,"list")||"list"; state.view=savedView;
+  const savedView=LS.get(LK_VIEW,"home")||"home"; state.view=savedView;
   document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===savedView));
   try{state.admin=sessionStorage.getItem("acc_admin")==="1";}catch(e){}
   ME=LS.get("acc_me","")||""; if(ME&&LS.get("acc_personal",true))state.assignee=ME;
@@ -1189,7 +1275,7 @@ function initLocal(){
   if(!LS.get(LK_CAT,null))LS.set(LK_CAT,CATEGORIES);
   if(!LS.get(LK_TYP,null))LS.set(LK_TYP,TYPES);
   let cl=LS.get(LK_C,null); if(!cl||!cl.length){cl=SEED_CLIENTS.slice();LS.set(LK_C,cl);}
-  let tk=LS.get(LK_T,null); if(tk===null){tk=sampleTasks();LS.set(LK_T,tk);}
+  let tk=seedDemo(); LS.set(LK_T,tk);
   state.clients=cl; state.tasks=tk;
   SEC_HASH=LS.get(LK_SEC,"")||null;
   ADMIN_HASH=LS.get("acc_admin_hash","")||null;
@@ -1290,7 +1376,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.2.2", APP_BUILD="2026-07-03";
+const APP_VERSION="2.3.3", APP_BUILD="2026-07-07";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1357,11 +1443,103 @@ function sortTasks(arr){
 }
 
 /* ============ render ============ */
+function addDaysStr(ds,n){const d=new Date(ds+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d);}
+function autoIdentify(){
+  if(ME||!MYEMAIL)return;
+  const local=MYEMAIL.split("@")[0].toLowerCase().replace(/[._-]/g,"");
+  if(!local)return;
+  const m=(editorNames()||[]).find(n=>{const x=String(n).toLowerCase().replace(/[._\s-]/g,"");return x&&(x===local||x.startsWith(local)||local.startsWith(x));});
+  if(m){ME=m;LS.set("acc_me",ME);}
+}
+function homeItemRow(t,opts){
+  opts=opts||{};
+  const c=clientByAbbr(t.clientAbbr)||{abbr:t.clientAbbr,name:t.clientAbbr};
+  const tp=TYPE_MAP[t.type]||{label:t.type};
+  const di=(tp.due&&t.dueDate)?dueInfo(t.dueDate):null;
+  const duePill=(opts.showDue&&di)?`<span class="due ${di.cls}"><span class="pill">${esc(di.label)}</span></span>`:"";
+  const isBd=t.type==="braindump";
+  const title=isBd?esc(t.projectName||"(note)"):(t.projectName?esc(t.projectName):esc(tp.label));
+  const sub=(isBd?"Sticky note":esc(tp.label))+((t.assignee&&!opts.hideAssignee)?" \u00b7 "+esc(t.assignee):"");
+  return `<div class="home-row ${t.completed?"done":""}" data-id="${esc(t.id)}" data-bd="${isBd?1:0}">
+    <span class="cdot" style="background:${typeColor(t.type)}"></span>
+    <span class="hr-abbr">${esc(c.abbr)}</span>
+    <span class="hr-main"><span class="hr-title">${title}</span><span class="hr-sub">${sub}</span></span>
+    ${duePill}${t.completed?`<span class="hr-done">\u2713</span>`:""}
+  </div>`;
+}
+function homeMiniCal(runs){
+  const today=todayStr(), WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let cells="";
+  for(let i=0;i<7;i++){
+    const ds=addDaysStr(today,i), d=new Date(ds+"T00:00:00");
+    const dayRuns=(runs||[]).filter(r=>r.dueDate===ds);
+    cells+=`<div class="mc-cell ${dayRuns.length?"has":""} ${i===0?"today":""}" ${dayRuns.length?`data-id="${esc(dayRuns[0].id)}"`:""}>
+      <div class="mc-wd">${WD[d.getDay()]}</div>
+      <div class="mc-day">${d.getDate()}</div>
+      <div class="mc-runs">${dayRuns.map(r=>{const c=clientByAbbr(r.clientAbbr)||{abbr:r.clientAbbr,name:r.clientAbbr};return `<span class="mc-run" title="${esc(c.name||c.abbr)}">${esc(c.abbr)}</span>`;}).join("")}</div>
+    </div>`;
+  }
+  const none=(runs||[]).length?"":`<div class="mc-none">No shoots scheduled this week.</div>`;
+  return `<div class="mc">${cells}</div>${none}`;
+}
+function homeHTML(){
+  autoIdentify();
+  const today=todayStr(), wk=addDaysStr(today,7), soon=addDaysStr(today,3);
+  const byDue=(a,b)=>((a.dueDate||"")<(b.dueDate||"")?-1:1);
+  const todayItems=state.tasks.filter(t=>t.dueDate===today&&t.type!=="braindump").sort((a,b)=>(!!a.completed!==!!b.completed)?(a.completed?1:-1):(a.assignee||"").localeCompare(b.assignee||""));
+  const myToday=ME?state.tasks.filter(t=>t.assignee===ME&&!t.completed&&t.dueDate===today&&t.type!=="filming"&&t.type!=="braindump").sort(byDue):[];
+  const myFilm=ME?state.tasks.filter(t=>t.type==="filming"&&t.assignee===ME&&!t.completed&&t.dueDate&&t.dueDate>=today&&t.dueDate<=wk).sort(byDue):[];
+  const myStick=ME?state.tasks.filter(t=>t.type==="braindump"&&t.assignee===ME&&!t.completed&&t.dueDate&&t.dueDate<=soon).sort(byDue):[];
+  let dstr=today; try{dstr=new Date(today+"T00:00:00").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});}catch(e){}
+  const realToday=state.tasks.filter(t=>t.dueDate===today&&t.type!=="filming"&&t.type!=="braindump");
+  const ghostToday=(typeof unassignedTodayCount==="function")?unassignedTodayCount():0;
+  const totalOut=realToday.length+ghostToday;
+  const doneOut=realToday.filter(t=>t.completed).length;
+  const pct=totalOut?Math.round(doneOut/totalOut*100):0;
+  const bar=totalOut?`<div class="home-bar-wrap">
+      <div class="home-bar-top"><span class="home-bar-lbl">${doneOut} of ${totalOut} posts out today</span><span class="home-bar-pct">${pct}%</span></div>
+      <div class="home-bar"><div class="home-bar-fill ${pct>=100?"full":""}" style="width:${pct}%"></div></div>
+      ${ghostToday?`<div class="home-bar-note">${ghostToday} still to be created</div>`:""}
+    </div>`:"";
+  const empty=m=>`<div class="home-empty">${m}</div>`;
+  const sec=(title,count,items,opts)=>`<div class="card home-card">
+      <div class="home-h">${title}${count!=null?` <span class="home-count">${count}</span>`:""}</div>
+      <div class="home-list">${items.length?items.map(t=>homeItemRow(t,opts)).join(""):empty((opts&&opts.emptyMsg)||"Nothing here.")}</div>
+    </div>`;
+  const idPick=!ME?`<div class="card home-card home-idcard">
+      <div class="home-h">Which editor are you?</div>
+      <p class="home-idsub">Pick your name so your personal to-dos, footage runs, and sticky notes show up here. (We couldn't match it to your login automatically.)</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><select class="inp" id="homePick" style="flex:1 1 200px"><option value="">\u2014 choose your name \u2014</option>${(editorNames()||[]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select><button class="btn primary" id="homeGo">Set</button></div>
+    </div>`:"";
+  const filmCard=`<div class="card home-card">
+      <div class="home-h">Footage runs \u00b7 next 7 days${ME?` <span class="home-count">${myFilm.length}</span>`:""}</div>
+      ${ME?homeMiniCal(myFilm):empty("Set your name above to see your shoots.")}
+    </div>`;
+  return `<div class="home-wrap">
+    <div class="home-greet"><h1>${ME?("Welcome back, "+esc(ME)):"Welcome"}</h1><div class="home-date">${esc(dstr)}</div></div>
+    ${idPick}
+    ${sec("Sticky notes \u00b7 due & overdue",ME?myStick.length:null,myStick,{showDue:true,hideAssignee:true,emptyMsg:ME?"No sticky notes due right now.":"Set your name above."})}
+    <div class="home-grid">
+      ${sec("Your editing today",ME?myToday.length:null,myToday,{hideAssignee:true,emptyMsg:ME?"You're all clear for today.":"Set your name above to see your to-dos."})}
+      ${filmCard}
+    </div>
+    <div class="card home-card home-today-min">
+      <div class="home-h">Today at Anomaly <span class="home-count">${realToday.length+ghostToday}</span></div>
+      ${bar||`<div class="home-empty">Nothing scheduled across the team today.</div>`}
+    </div>
+  </div>`;
+}
+function bindHome(scope){
+  const go=scope.querySelector("#homeGo"), pick=scope.querySelector("#homePick");
+  if(go&&pick)go.onclick=()=>{const v=pick.value;if(!v){toast("Pick your name first");return;}signIn(v);};
+  scope.querySelectorAll(".home-row[data-id]").forEach(r=>{r.onclick=()=>{if(r.dataset.bd==="1"){setView("braindump");render();}else{openEdit(r.dataset.id);}};});
+  scope.querySelectorAll(".mc-cell[data-id]").forEach(c=>{c.onclick=()=>openEdit(c.dataset.id);});
+}
 function render(){
   updateCounts();
   const ctrls=document.querySelector(".controls");
-  if(ctrls)ctrls.style.display=(state.view==="dashboard"||state.view==="settings"||state.view==="filming"||state.view==="delivery"||state.view==="braindump"||state.view==="documents")?"none":"";
-  const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("wide", state.view==="braindump"||state.view==="documents");
+  if(ctrls)ctrls.style.display=(state.view==="home"||state.view==="dashboard"||state.view==="settings"||state.view==="filming"||state.view==="delivery"||state.view==="braindump"||state.view==="documents")?"none":"";
+  const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("wide", state.view==="home"||state.view==="braindump"||state.view==="documents");
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
   let pool=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
@@ -1372,7 +1550,8 @@ function render(){
   statsEl.innerHTML=(state.tab==="master"&&state.view==="list")?statsStrip(activeRaw,pool.filter(t=>t.completed).length):"";
   const compSec=document.querySelector(".completed-sec");
   if(compSec)compSec.style.display=(state.view==="list"&&state.quick!=="completed")?"":"none";
-  if(state.view==="settings"){board.innerHTML=settingsHTML();bindSettings(board);}
+  if(state.view==="home"){board.innerHTML=homeHTML();bindHome(board);}
+  else if(state.view==="settings"){board.innerHTML=settingsHTML();bindSettings(board);}
   else if(state.view==="filming"){board.innerHTML=filmingHTML();bindFilming(board);}
   else if(state.view==="delivery"){board.innerHTML=deliveryHTML();}
   else if(state.view==="braindump"){board.innerHTML=braindumpHTML();bindBraindump(board);}
@@ -2720,8 +2899,8 @@ function applyLockUI(){
   document.body.classList.toggle("locked",state.locked);
   const guest=isGuest();
   const fab=$("#openAdd");if(fab)fab.style.display=state.locked?"none":"";
-  const hide = guest ? ["dashboard","delivery","settings","filming","braindump","documents"] : (state.locked?["dashboard","delivery","settings"]:[]);
-  ["dashboard","delivery","settings","filming","braindump","documents"].forEach(v=>{const n=document.querySelector('[data-view="'+v+'"]');if(n)n.style.display=hide.includes(v)?"none":"";});
+  const hide = guest ? ["home","dashboard","delivery","settings","filming","braindump","documents"] : (state.locked?["dashboard","delivery","settings"]:[]);
+  ["home","dashboard","delivery","settings","filming","braindump","documents"].forEach(v=>{const n=document.querySelector('[data-view="'+v+'"]');if(n)n.style.display=hide.includes(v)?"none":"";});
   const bell=$("#bellBtn");if(bell)bell.style.display=guest?"none":"";
   const so=$("#signOutBtn");if(so&&guest)so.style.display="none";
   const pb=$("#previewBadge");if(pb)pb.style.display=guest?"":"none";
