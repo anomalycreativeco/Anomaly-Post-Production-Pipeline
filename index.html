@@ -374,6 +374,10 @@ select.sel:hover{border-color:var(--sage)}
 .hr-title{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hr-sub{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hr-done{color:var(--sage-deep,#3f7457);font-weight:800;flex:0 0 auto}
+.home-cb{flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;padding:0;transition:all .15s}
+.home-cb:hover{border-color:var(--sage,#92ABA7)}
+.home-cb.on{background:var(--sage-deep,#3f7457);border-color:var(--sage-deep,#3f7457)}
+.home-cb svg{width:13px;height:13px}
 .home-empty{color:var(--muted);font-size:13px;padding:10px 8px;font-style:italic}
 .home-bar-wrap{margin:2px 0 14px}
 .home-bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -1376,7 +1380,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.3.3", APP_BUILD="2026-07-07";
+const APP_VERSION="2.3.4", APP_BUILD="2026-07-07";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1460,8 +1464,11 @@ function homeItemRow(t,opts){
   const isBd=t.type==="braindump";
   const title=isBd?esc(t.projectName||"(note)"):(t.projectName?esc(t.projectName):esc(tp.label));
   const sub=(isBd?"Sticky note":esc(tp.label))+((t.assignee&&!opts.hideAssignee)?" \u00b7 "+esc(t.assignee):"");
+  const lead=!state.locked
+    ? `<button type="button" class="home-cb ${t.completed?"on":""}" aria-label="Toggle done">${t.completed?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>`:""}</button>`
+    : `<span class="cdot" style="background:${typeColor(t.type)}"></span>`;
   return `<div class="home-row ${t.completed?"done":""}" data-id="${esc(t.id)}" data-bd="${isBd?1:0}">
-    <span class="cdot" style="background:${typeColor(t.type)}"></span>
+    ${lead}
     <span class="hr-abbr">${esc(c.abbr)}</span>
     <span class="hr-main"><span class="hr-title">${title}</span><span class="hr-sub">${sub}</span></span>
     ${duePill}${t.completed?`<span class="hr-done">\u2713</span>`:""}
@@ -1534,6 +1541,7 @@ function bindHome(scope){
   if(go&&pick)go.onclick=()=>{const v=pick.value;if(!v){toast("Pick your name first");return;}signIn(v);};
   scope.querySelectorAll(".home-row[data-id]").forEach(r=>{r.onclick=()=>{if(r.dataset.bd==="1"){setView("braindump");render();}else{openEdit(r.dataset.id);}};});
   scope.querySelectorAll(".mc-cell[data-id]").forEach(c=>{c.onclick=()=>openEdit(c.dataset.id);});
+  scope.querySelectorAll(".home-row .home-cb").forEach(cb=>{cb.onclick=e=>{e.stopPropagation();const row=cb.closest(".home-row");if(row)toggleDone(row.dataset.id);};});
 }
 function render(){
   updateCounts();
