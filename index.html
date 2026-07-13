@@ -858,6 +858,8 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
   <div class="spacer"></div>
   <button class="btn icon-only" id="lockBtn" title="View only" aria-label="Lock state" style="display:none"></button>
   <button class="btn icon-only bell-btn" id="bellBtn" title="My to-do" aria-label="My to-do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-badge" id="bellBadge" style="display:none">0</span></button>
+  <button class="btn icon-only" id="undoBtn" title="Undo (\u2318Z)" aria-label="Undo" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+  <button class="btn icon-only" id="redoBtn" title="Redo (\u2318\u21E7Z)" aria-label="Redo" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
   <button class="btn icon-only" id="signOutBtn" title="Sign out" aria-label="Sign out" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
   <button class="btn icon-only" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme"></button>
 </div>
@@ -1129,6 +1131,52 @@ const backend={
   async removeRole(email){email=email.toLowerCase();if(fb())await FBSDK.deleteDoc(FBSDK.doc(db,"roles",email));else{delete ROLES[email];LS.set("acc_roles",ROLES);applyRole();refreshUI();}},
 };
 
+// ---- undo / redo history (task changes) ----
+let HIST=[],HIFWD=[],histOn=true,_histLast=0;
+function histRecord(op){
+  if(!histOn)return;
+  const now=Date.now();
+  if(HIST.length&&(now-_histLast)<160){const e=HIST[HIST.length-1];e.undo.unshift(...op.undo);e.redo.push(...op.redo);}
+  else{HIST.push(op);if(HIST.length>60)HIST.shift();}
+  _histLast=now;HIFWD=[];updateUndoUI();
+}
+const _rawUpsert=backend.upsertTask.bind(backend);
+const _rawRemove=backend.removeTask.bind(backend);
+backend.upsertTask=async function(t){
+  const prev=state.tasks.find(x=>x.id===t.id);
+  histRecord({undo:[prev?{k:"u",t:{...prev}}:{k:"r",id:t.id}],redo:[{k:"u",t:{...t}}]});
+  return _rawUpsert(t);
+};
+backend.removeTask=async function(id){
+  const prev=state.tasks.find(x=>x.id===id);
+  if(prev)histRecord({undo:[{k:"u",t:{...prev}}],redo:[{k:"r",id:id}]});
+  return _rawRemove(id);
+};
+async function applyOps(ops){
+  histOn=false;
+  try{for(const o of ops){if(o.k==="u")await _rawUpsert(o.t);else await _rawRemove(o.id);}}
+  finally{histOn=true;}
+  refreshUI();
+}
+async function doUndo(){
+  if(state.locked)return;
+  const e=HIST.pop();
+  if(!e){toast("Nothing to undo");updateUndoUI();return;}
+  HIFWD.push(e);await applyOps(e.undo);updateUndoUI();toast("Undone");
+}
+async function doRedo(){
+  if(state.locked)return;
+  const e=HIFWD.pop();
+  if(!e){toast("Nothing to redo");updateUndoUI();return;}
+  HIST.push(e);await applyOps(e.redo);updateUndoUI();toast("Redone");
+}
+function updateUndoUI(){
+  const u=$("#undoBtn"),r=$("#redoBtn");
+  if(u){u.disabled=!HIST.length;u.style.opacity=HIST.length?"":"0.4";}
+  if(r){r.disabled=!HIFWD.length;r.style.opacity=HIFWD.length?"":"0.4";}
+}
+
+
 /* ============ state ============ */
 function seedDemo(){
   const today=todayStr(), wd=new Date(today+"T00:00:00").getDay();
@@ -1380,7 +1428,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.3.4", APP_BUILD="2026-07-07";
+const APP_VERSION="2.4.0", APP_BUILD="2026-07-07";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2912,6 +2960,7 @@ function applyLockUI(){
   const bell=$("#bellBtn");if(bell)bell.style.display=guest?"none":"";
   const so=$("#signOutBtn");if(so&&guest)so.style.display="none";
   const pb=$("#previewBadge");if(pb)pb.style.display=guest?"":"none";
+  const ub=$("#undoBtn"),rb=$("#redoBtn");if(ub)ub.style.display=state.locked?"none":"";if(rb)rb.style.display=state.locked?"none":"";
   const lb=$("#lockBtn");if(lb){lb.style.display="none";lb.innerHTML=state.locked?ICON_LOCK:ICON_UNLOCK;lb.title=state.locked?"View only":"Editing unlocked";}
   if(state.locked && hide.includes(state.view)){state.view="list";document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view==="list"));render();}
 }
@@ -2956,6 +3005,18 @@ function wireUp(){
   const ae2=$("#authEmail");if(ae2)ae2.onkeydown=e=>{if(e.key==="Enter")sendEmailLink();};
   const so2=$("#authSignout2");if(so2)so2.onclick=doSignOut;
   const sob=$("#signOutBtn");if(sob)sob.onclick=doSignOut;
+  const ub2=$("#undoBtn");if(ub2)ub2.onclick=doUndo;
+  const rb2=$("#redoBtn");if(rb2)rb2.onclick=doRedo;
+  document.addEventListener("keydown",e=>{
+    const mod=e.metaKey||e.ctrlKey; if(!mod)return;
+    const k=(e.key||"").toLowerCase(); if(k!=="z"&&k!=="y")return;
+    const t=e.target, tag=(t&&t.tagName||"").toLowerCase();
+    if(tag==="input"||tag==="textarea"||tag==="select"||(t&&t.isContentEditable))return;
+    if(document.querySelector(".scrim.open"))return;
+    e.preventDefault();
+    if(k==="y"||(k==="z"&&e.shiftKey))doRedo();else doUndo();
+  });
+  updateUndoUI();
   document.querySelectorAll(".copybtn").forEach(b=>b.onclick=()=>copyField(b.dataset.copy,b));
   const fnt=$("#fNotes");if(fnt)fnt.oninput=autoGrowNotes;
   const delBtn=$("#delEntry");let delTimer=null;if(delBtn)delBtn.onclick=async()=>{
