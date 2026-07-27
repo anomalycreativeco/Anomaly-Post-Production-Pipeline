@@ -65,6 +65,13 @@ a{color:inherit}
 .mf .del-entry:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .mf .del-entry.armed{background:var(--red);color:#fff;border-color:var(--red)}
 body.locked .cal-clearmiss{display:none}
+#filterNote{display:none}
+#filterNote.on{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding:9px 14px;border-radius:12px;
+  background:rgba(146,171,167,.16);border:1px solid rgba(146,171,167,.5);font-size:13px}
+#filterNote b{font-weight:700}
+#filterNote .fn-clear{margin-left:auto;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;
+  background:var(--ink,#1a1a1a);color:#fff;border:none;border-radius:999px;padding:6px 14px}
+#filterNote .fn-clear:hover{opacity:.88}
 .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--sage-tint);border-bottom:1px solid var(--line)}
 .cal-dow span{padding:8px 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(120px,auto)}
@@ -908,6 +915,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 </div>
 
 <div class="wrap">
+  <div id="filterNote"></div>
   <div id="stats"></div>
   <div id="board"></div>
   <div class="completed-sec">
@@ -1430,7 +1438,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.6.0", APP_BUILD="2026-07-26";
+const APP_VERSION="2.6.1", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1482,6 +1490,19 @@ function updateCounts(){
 
 /* ============ filter & sort ============ */
 function passCat(t){if(state.cat==="all")return true;const c=clientByAbbr(t.clientAbbr);return c&&c.cat===state.cat;}
+function renderFilterNote(){
+  const el=document.querySelector("#filterNote"); if(!el)return;
+  const listy=(state.view==="list"||state.view==="calendar");
+  const filtered=state.assignee&&state.assignee!=="all";
+  if(!listy||!filtered){el.className="";el.innerHTML="";return;}
+  const who=state.assignee==="__none"?"unassigned tasks":`<b>${esc(state.assignee)}</b>&rsquo;s tasks only`;
+  const mine=state.assignee===ME?" (your personal view)":"";
+  el.className="on";
+  el.innerHTML=`<span>Showing ${who}${mine} &mdash; the rest of the team&rsquo;s work is hidden.</span>
+    <button class="fn-clear" id="fnClear">Show all editors</button>`;
+  const b=document.querySelector("#fnClear");
+  if(b)b.onclick=()=>{state.assignee="all";if(ME)LS.set("acc_personal",false);syncAsgSelect();render();};
+}
 function passAsg(t){if(state.assignee==="all")return true;if(state.assignee==="__none")return !t.assignee;return t.assignee===state.assignee;}
 function urg(t){return t.dueDate?new Date(t.dueDate).getTime():Infinity;}
 function sortTasks(arr){
@@ -1600,6 +1621,7 @@ function render(){
   const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("wide", state.view==="home"||state.view==="braindump"||state.view==="documents");
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
+  renderFilterNote();
   let pool=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
   if(state.tab==="__rev")pool=pool.filter(t=>t.revision);
   else if(state.tab!=="master")pool=pool.filter(t=>t.type===state.tab);
@@ -3121,7 +3143,7 @@ function wireUp(){
   $("#lockBtn").onclick=lockNow;$("#lockGo").onclick=doUnlock;$("#lockCancel").onclick=()=>$("#lockScrim").classList.remove("open");
   $("#lockPw").onkeydown=e=>{if(e.key==="Enter")doUnlock();};
   $("#catFilter").onchange=e=>{state.cat=e.target.value;render();};
-  $("#asgFilter").onchange=e=>{state.assignee=e.target.value;render();};
+  $("#asgFilter").onchange=e=>{state.assignee=e.target.value;if(ME)LS.set("acc_personal",state.assignee===ME);render();};
   $("#sortBy").onchange=e=>{state.sort=e.target.value;render();};
   document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;state.quick=null;LS.set(LK_VIEW,state.view);document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x===b));render();});
   document.addEventListener("click",e=>{const st=e.target.closest(".stat[data-stat]");if(st)onStatClick(st.dataset.stat);});
