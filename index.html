@@ -945,7 +945,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
       <div class="frow"><label>Client</label><select class="inp" id="fClient"></select></div>
       <div class="frow"><label>Project Name <span class="opt">— optional</span></label><input type="text" class="inp" id="fName" placeholder="e.g. June Brand Film  ·  Listing — 123 Oak St"></div>
       <div class="frow"><label id="asgLbl">Editor <span class="opt">— optional</span></label><select class="inp" id="fAssignee"></select></div>
-      <div class="frow" id="dueRow"><label id="dueLbl">Due Date</label><input type="date" class="inp" id="fDue"><div class="hint" id="dueHint">Dailies don't use due dates.</div></div>
+      <div class="frow" id="dueRow"><label id="dueLbl">Due Date</label><input type="date" class="inp" id="fDue"><button type="button" class="btn" id="fNextSched" style="margin-top:7px;font-size:12.5px" title="Jump the due date to the client's next scheduled posting day">&rarr; Move to next scheduled posting date</button><div class="hint" id="dueHint">Dailies don't use due dates.</div></div>
       <div class="frow" id="deliverRow"><label>Delivery</label><label class="chk"><input type="checkbox" id="fDelivered"> Delivered to Slack — production done, not yet posted</label></div>
       <div class="frow" id="revRow"><label>Revision</label><label class="chk"><input type="checkbox" id="fRevision"> Needs revision — flagged for rework</label></div>
       <div class="frow" id="recurRow"><label>Recurring</label><select class="inp" id="fRecur"><option value="none">One-off</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="bimonthly">Every 2 months</option><option value="quarterly">Quarterly</option></select><div class="hint">When completed, the next run is auto-scheduled.</div></div>
@@ -1430,7 +1430,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.5.3", APP_BUILD="2026-07-26";
+const APP_VERSION="2.6.0", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -3075,6 +3075,23 @@ function onStatClick(kind){
 }
 function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
+  $("#fNextSched").onclick=()=>{
+    if(state.locked||$("#fDue").readOnly)return;
+    const abbr=$("#fClient").value;
+    if(!abbr){toast("Pick a client first");return;}
+    const days=SCHEDULE[abbr]||[];
+    if(!days.length){toast("No posting schedule set for this client — add one in Clients");return;}
+    const from=$("#fDue").value||todayStr();
+    const d=new Date(from+"T00:00:00");
+    if(isNaN(d)){toast("Due date looks invalid");return;}
+    let ds=null;
+    for(let i=0;i<70;i++){d.setDate(d.getDate()+1);const cand=ymd(d);
+      if(days.includes(d.getDay())&&!isSkipped(abbr,cand)){ds=cand;break;}}
+    if(!ds){toast("Couldn't find a scheduled day in the next 10 weeks");return;}
+    $("#fDue").value=ds;
+    const nice=new Date(ds+"T12:00").toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+    toast("Due moved to "+nice+" — hit Save Entry");
+  };
   const ag=$("#authGoogle");if(ag)ag.onclick=signInGoogle;
   const al=$("#authLink");if(al)al.onclick=sendEmailLink;
   const ae2=$("#authEmail");if(ae2)ae2.onkeydown=e=>{if(e.key==="Enter")sendEmailLink();};
