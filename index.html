@@ -1430,7 +1430,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.5.0", APP_BUILD="2026-07-26";
+const APP_VERSION="2.5.1", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1497,7 +1497,7 @@ function sortTasks(arr){
 }
 
 /* ============ render ============ */
-function addDaysStr(ds,n){const d=new Date(ds+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d);}
+function addDaysStr(ds,n){const d=new Date(ds+"T00:00:00");if(isNaN(d))return ds;d.setDate(d.getDate()+n);return ymd(d);}
 function autoIdentify(){
   if(ME||!MYEMAIL)return;
   const local=MYEMAIL.split("@")[0].toLowerCase().replace(/[._-]/g,"");
@@ -1667,11 +1667,13 @@ const ymd=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
    REV DELAY= revision pushed the final past the window when the first
               cut was on time — logged separately, never a miss.
    Misses with no footage uploaded attribute to the filming side. */
-function nextBizDay(ds){const d=new Date(ds+"T00:00:00");do{d.setDate(d.getDate()+1);}while(d.getDay()===0||d.getDay()===6);return ymd(d);}
-function addDaysStr(ds,n){const d=new Date(ds+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d);}
+function nextBizDay(ds){const d=new Date(ds+"T00:00:00");if(isNaN(d))return ds;let g=0;do{d.setDate(d.getDate()+1);}while((d.getDay()===0||d.getDay()===6)&&++g<8);return ymd(d);}
+function addDaysStr(ds,n){const d=new Date(ds+"T00:00:00");if(isNaN(d))return ds;d.setDate(d.getDate()+n);return ymd(d);}
 function missStatus(t,today){
+ try{
   today=today||todayStr();
   if(!TYPE_MAP[t.type]||!TYPE_MAP[t.type].due||t.type==="filming"||t.type==="braindump"||!t.dueDate)return null;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(t.dueDate)))return null;
   const grace=nextBizDay(t.dueDate), postBy=addDaysStr(t.dueDate,2);
   const two=(t.type==="daily"||t.type==="longform");
   const deliveredFlag=two?(t.delivered||t.completed):t.completed;
@@ -1687,6 +1689,7 @@ function missStatus(t,today){
   }
   if(today>postBy)return t.revision?"revdelay":"postlate";
   return "delivered";
+ }catch(e){return null;}
 }
 function missCause(t){return (t.footageUrl&&String(t.footageUrl).trim())?"edit":"footage";}
 function urgClass(t){const di=TYPE_MAP[t.type]?.due?dueInfo(t.dueDate):null;if(!di)return"u-none";if(di.days<0)return"u-over";if(di.days<=3)return"u-soon";if(di.days<=6)return"u-week";return"u-later";}
