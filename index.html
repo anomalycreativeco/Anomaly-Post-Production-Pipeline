@@ -1430,7 +1430,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.5.2", APP_BUILD="2026-07-26";
+const APP_VERSION="2.5.3", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1918,6 +1918,8 @@ function perEditorStats(){
   return Object.values(map).sort((a,b)=>b.missed-a.missed||b.ontime-a.ontime);
 }
 function editorsPanelHTML(){
+  // founder-only: Daniel sees the scoreboard, nobody else does
+  if(!OWNERS.includes((MYEMAIL||"").toLowerCase()))return "";
   const rows=perEditorStats().filter(m=>m.ontime+m.late+m.missed+m.revdelay+m.postlate+m.overdue>0);
   if(!rows.length)return "";
   return `<div style="background:var(--paper,#fff);border:1px solid var(--line,#e2e2e2);border-radius:14px;padding:14px 16px;margin:0 0 14px">
