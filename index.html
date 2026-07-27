@@ -87,6 +87,8 @@ body.locked .cchip-tick{display:none}
 .cchip:hover{filter:brightness(.96)}
 .cchip.over{background:rgba(192,57,43,.18)!important;border-left:3px solid var(--red)!important;box-shadow:inset 0 0 0 1px var(--red);color:#8f2317}
 .cchip.over .cchip-lbl{color:#8f2317;font-weight:600}
+.cchip.missedchip{background:repeating-linear-gradient(45deg,rgba(192,57,43,.22) 0 5px,rgba(192,57,43,.45) 5px 10px)!important;border-left:3px solid var(--red)!important;box-shadow:inset 0 0 0 1px var(--red)}
+.cchip.missedchip .cchip-lbl{color:#7d1d12;font-weight:700}
 .cchip.over .cchip-tick{border-color:var(--red);opacity:.8}
 .cchip.daily{background:#eef3f1;color:var(--sage-800)}
 .cchip.longform{background:#eef1f5;color:#4a5878}
@@ -1428,7 +1430,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.4.0", APP_BUILD="2026-07-07";
+const APP_VERSION="2.5.0", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1657,6 +1659,36 @@ function emptyHTML(){return `<div class="tbl"><div class="empty"><div class="eb"
 /* ============ calendar ============ */
 const pad2=n=>String(n).padStart(2,"0");
 const ymd=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+/* ===== miss / on-time rules (agreed with Daniel, 2026-07-26) =====
+   ON TIME  = delivered by the due date AND posted within 2 days of it.
+   OVERDUE  = past due, not delivered yet (flags immediately).
+   MISSED   = still undelivered past the next business day after due,
+              or first delivery landed past that grace deadline.
+   REV DELAY= revision pushed the final past the window when the first
+              cut was on time — logged separately, never a miss.
+   Misses with no footage uploaded attribute to the filming side. */
+function nextBizDay(ds){const d=new Date(ds+"T00:00:00");do{d.setDate(d.getDate()+1);}while(d.getDay()===0||d.getDay()===6);return ymd(d);}
+function addDaysStr(ds,n){const d=new Date(ds+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d);}
+function missStatus(t,today){
+  today=today||todayStr();
+  if(!TYPE_MAP[t.type]||!TYPE_MAP[t.type].due||t.type==="filming"||t.type==="braindump"||!t.dueDate)return null;
+  const grace=nextBizDay(t.dueDate), postBy=addDaysStr(t.dueDate,2);
+  const two=(t.type==="daily"||t.type==="longform");
+  const deliveredFlag=two?(t.delivered||t.completed):t.completed;
+  const dAt=two?(t.deliveredAt||(t.delivered?null:t.completedAt)):t.completedAt; // legacy delivered w/o stamp -> null -> due-date benefit of the doubt
+  const dYmd=deliveredFlag?(dAt?ymd(new Date(dAt)):t.dueDate):null; // legacy unstamped: benefit of the doubt
+  if(!deliveredFlag)return today>grace?"missed":(today>t.dueDate?"overdue":"open");
+  if(dYmd>grace)return "missed";
+  const dLate=dYmd>t.dueDate;
+  if(t.completed){
+    const pYmd=ymd(new Date(t.completedAt||Date.now()));
+    if(pYmd>postBy)return t.revision?"revdelay":"postlate";
+    return dLate?"late":"ontime";
+  }
+  if(today>postBy)return t.revision?"revdelay":"postlate";
+  return "delivered";
+}
+function missCause(t){return (t.footageUrl&&String(t.footageUrl).trim())?"edit":"footage";}
 function urgClass(t){const di=TYPE_MAP[t.type]?.due?dueInfo(t.dueDate):null;if(!di)return"u-none";if(di.days<0)return"u-over";if(di.days<=3)return"u-soon";if(di.days<=6)return"u-week";return"u-later";}
 function calChip(t){
   const c=clientByAbbr(t.clientAbbr)||{abbr:t.clientAbbr};
@@ -1671,7 +1703,8 @@ function calChip(t){
   const drag=(!t.completed&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)?'draggable="true"':"";
   const ready=t.footageUrl&&String(t.footageUrl).trim()?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
   const recur=(t.type==="filming"&&t.recur&&t.recur!=="none")?`<span class="cchip-recur" title="Recurring footage run">↻</span>`:"";
-  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
+  const _ms=missStatus(t);
+  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${_ms==="missed"&&!t.completed?"missedchip":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
 }
 function calHeader(title){
   return `<div class="cal-head">
@@ -1689,7 +1722,7 @@ function calLegend(){
   let items, title;
   if(state.chipColor==="urgency"){
     title="Urgency";
-    items=[["var(--red)","Overdue"],["var(--amber)","Due soon (≤3 days)"],["var(--sage)","This week"],["#6b7fa8","Later"],["#b8bcba","No date"]];
+    items=[["repeating-linear-gradient(45deg,rgba(192,57,43,.25) 0 5px,rgba(192,57,43,.5) 5px 10px)","Missed (past grace day)"],["var(--red)","Overdue"],["var(--amber)","Due soon (≤3 days)"],["var(--sage)","This week"],["#6b7fa8","Later"],["#b8bcba","No date"]];
   }else{
     title="Edit type";
     items=TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>[tp.color,tp.label]);
@@ -1850,9 +1883,10 @@ function perClientStats(){
     const posts=state.tasks.filter(t=>t.clientAbbr===c.abbr&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.type!=="filming"&&t.type!=="braindump"&&((t.dueDate&&t.dueDate>=STATS_SINCE)||(!t.dueDate&&t.completedAt&&ymd(new Date(t.completedAt))>=STATS_SINCE)));
     const comp=posts.filter(t=>t.completed);
     const withDue=comp.filter(t=>t.dueDate);
-    const onTime=withDue.filter(t=>t.completedAt&&ymd(new Date(t.completedAt))<=t.dueDate).length;
+    const onTime=withDue.filter(t=>missStatus(t)==="ontime").length;
     const onTimeRate=withDue.length?Math.round(onTime/withDue.length*100):null;
-    const overdue=posts.filter(t=>!t.completed&&t.dueDate&&t.dueDate<today).length;
+    const overdue=posts.filter(t=>missStatus(t)==="overdue").length;
+    const missedNow=posts.filter(t=>missStatus(t)==="missed").length;
     const open=posts.filter(t=>!t.completed).length;
     const sched=SCHEDULE[c.abbr]||[];
     let scheduled30=0,delivered30=0;const missedDates=[];
@@ -1860,12 +1894,47 @@ function perClientStats(){
     const missed30=scheduled30-delivered30;
     const missRate=scheduled30?missed30/scheduled30:null;
     const tc={};posts.forEach(t=>{tc[t.type]=(tc[t.type]||0)+1;});const typeData=Object.keys(tc).map(t=>({label:(TYPE_MAP[t]||{}).label||t,value:tc[t],color:(TYPE_MAP[t]||{}).color||"#c4c9c7"}));
-    let score=overdue*8;if(missRate!=null)score+=missRate*100;if(onTimeRate!=null)score+=(100-onTimeRate)*0.3;
+    let score=overdue*8+missedNow*14;if(missRate!=null)score+=missRate*100;if(onTimeRate!=null)score+=(100-onTimeRate)*0.3;
     let health="ok";
-    if((missRate!=null&&missRate>=0.34)||overdue>=4||(onTimeRate!=null&&onTimeRate<60))health="bad";
+    if((missRate!=null&&missRate>=0.34)||overdue>=4||missedNow>=2||(onTimeRate!=null&&onTimeRate<60))health="bad";
     else if((missRate!=null&&missRate>=0.12)||overdue>=1||(onTimeRate!=null&&onTimeRate<85))health="warn";
-    return {abbr:c.abbr,name:c.name,completed:comp.length,onTimeRate,overdue,open,scheduled30,delivered30,missed30,missRate,missedDates:missedDates.slice(0,8),typeData,score,health};
+    return {abbr:c.abbr,name:c.name,completed:comp.length,onTimeRate,overdue,missedNow,open,scheduled30,delivered30,missed30,missRate,missedDates:missedDates.slice(0,8),typeData,score,health};
   });
+}
+function perEditorStats(){
+  const posts=state.tasks.filter(t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.type!=="filming"&&t.type!=="braindump"&&t.dueDate&&t.dueDate>=STATS_SINCE);
+  const map={};
+  posts.forEach(t=>{
+    const a=(t.assignee||"Unassigned");
+    const m=map[a]=map[a]||{name:a,ontime:0,late:0,missed:0,missFoot:0,revdelay:0,postlate:0,overdue:0};
+    const st=missStatus(t);if(!st||st==="open"||st==="delivered")return;
+    if(st==="ontime")m.ontime++;else if(st==="late")m.late++;
+    else if(st==="missed"){m.missed++;if(missCause(t)==="footage")m.missFoot++;}
+    else if(st==="revdelay")m.revdelay++;else if(st==="postlate")m.postlate++;
+    else if(st==="overdue")m.overdue++;
+  });
+  return Object.values(map).sort((a,b)=>b.missed-a.missed||b.ontime-a.ontime);
+}
+function editorsPanelHTML(){
+  const rows=perEditorStats().filter(m=>m.ontime+m.late+m.missed+m.revdelay+m.postlate+m.overdue>0);
+  if(!rows.length)return "";
+  return `<div style="background:var(--paper,#fff);border:1px solid var(--line,#e2e2e2);border-radius:14px;padding:14px 16px;margin:0 0 14px">
+    <h3 style="margin:0 0 2px;font-size:15px">Editors — misses &amp; on-time</h3>
+    <div style="font-size:11px;opacity:.65;margin-bottom:10px">on-time = delivered by due + posted &le;2 days &nbsp;·&nbsp; missed = not delivered by the next business day &nbsp;·&nbsp; since ${STATS_SINCE}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr>${["Editor","On-time","Missed","· footage side","Rev. delay","Posted late","Overdue now"].map(h=>`<th style="text-align:left;font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.55;padding:5px 8px">${h}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(m=>{
+        const done=m.ontime+m.late+m.missed+m.revdelay+m.postlate;
+        const r=done?Math.round(m.ontime/done*100):null;
+        return `<tr>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)"><b>${esc(m.name)}</b></td>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)">${r==null?"—":r+"%"}</td>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)">${m.missed?`<b style="color:var(--red,#c0392b)">${m.missed}</b>`:"0"}</td>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)">${m.missFoot||0}</td>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)">${m.revdelay||0}</td>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)">${m.postlate||0}</td>
+          <td style="padding:6px 8px;border-top:1px solid var(--line,#eee)">${m.overdue||0}</td>
+        </tr>`;}).join("")}</tbody></table></div>`;
 }
 function clientPanelHTML(){
   const open=LS.get("acc_dash_clients_open",true);
@@ -1961,7 +2030,7 @@ function dashboardHTML(){
   const unassigned=active.filter(t=>!t.assignee).length; if(unassigned)editorData.push({label:"Unassigned",value:unassigned,color:"#c4c9c7"});
   const ws0=weekStart(new Date()),weeks=[];
   for(let i=5;i>=0;i--){const s=new Date(ws0.getFullYear(),ws0.getMonth(),ws0.getDate()-i*7);const e=new Date(s.getFullYear(),s.getMonth(),s.getDate()+7);weeks.push({label:(s.getMonth()+1)+"/"+s.getDate(),value:all.filter(t=>t.completed&&t.completedAt&&t.completedAt>=s.getTime()&&t.completedAt<e.getTime()).length});}
-  return `<div class="dash">${kpi}${clientPanelHTML()}<div class="dash-grid">
+  return `<div class="dash">${kpi}${clientPanelHTML()}${editorsPanelHTML()}<div class="dash-grid">
     <div class="card wide"><div class="card-h">Posts completed per week · 52-week view (from Jun 1, 2026)</div>${lineSVG(linePts)}</div>
     <div class="card wide"><div class="card-h">Upcoming load · next 14 days</div>${miniBars(upPts)}</div>
     ${lwCard}
@@ -2235,8 +2304,8 @@ async function advanceStage(id){
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
   const twoStage=(t.type==="daily"||t.type==="longform"),today=todayStr();
   let patch,msg;
-  if(t.completed){patch={completed:false,completedAt:null,delivered:false};msg="Reopened — back in production";}
-  else if(twoStage&&!t.delivered){patch={delivered:true};msg="Marked delivered (not posted)";}
+  if(t.completed){patch={completed:false,completedAt:null,delivered:false,deliveredAt:null};msg="Reopened — back in production";}
+  else if(twoStage&&!t.delivered){patch={delivered:true,deliveredAt:t.deliveredAt||Date.now()};msg="Marked delivered (not posted)";}
   else{patch={completed:true,completedAt:Date.now()};msg="Marked posted";}
   await backend.upsertTask({...t,...patch});touchActivity();refreshUI();toast(msg);
   if(patch.completed&&t.type==="filming")maybeRecur({...t,...patch});
@@ -2245,7 +2314,7 @@ async function advanceStage(id){
 async function toggleDelivered(id){
   if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
-  await backend.upsertTask({...t,delivered:!t.delivered});touchActivity();refreshUI();toast(!t.delivered?"Marked delivered":"Delivery unmarked");
+  await backend.upsertTask({...t,delivered:!t.delivered,deliveredAt:!t.delivered?(t.deliveredAt||Date.now()):null});touchActivity();refreshUI();toast(!t.delivered?"Marked delivered":"Delivery unmarked");
 }
 async function toggleRevision(id){
   if(state.locked)return;
@@ -2602,6 +2671,8 @@ async function saveEntry(){
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
+  if(task.delivered&&!task.deliveredAt)task.deliveredAt=Date.now();
+  if(!task.delivered)task.deliveredAt=null;
   await backend.upsertTask(task);
   $("#addScrim").classList.remove("open");refreshUI();touchActivity();toast(id?"Saved":"Entry added");
   if(pendingMiss){SKIPS.add(skipKey(pendingMiss.abbr,pendingMiss.fromDate));backend.saveSkips();pendingMiss=null;}
@@ -3224,7 +3295,7 @@ function jBrain(text){
 
 /* ---- execute actions ---- */
 async function jApplyStage(t,to){
-  const patch=to==="posted"?{completed:true,completedAt:Date.now()}:to==="delivered"?{delivered:true}:{completed:false,completedAt:null,delivered:false};
+  const patch=to==="posted"?{completed:true,completedAt:Date.now()}:to==="delivered"?{delivered:true,deliveredAt:t.deliveredAt||Date.now()}:{completed:false,completedAt:null,delivered:false,deliveredAt:null};
   await backend.upsertTask({...t,...patch});refreshUI();
   if(patch.completed&&t.type==="filming"&&typeof maybeRecur==="function")maybeRecur({...t,...patch});
 }
