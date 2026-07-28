@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anomaly · Editing Pipeline</title>
@@ -1438,7 +1439,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.6.2", APP_BUILD="2026-07-26";
+const APP_VERSION="2.7.0", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1639,7 +1640,7 @@ function render(){
   else if(state.view==="dashboard"){board.innerHTML=dashboardHTML();bindDashboard(board);}
   else if(state.view==="calendar"){
     const doneDated=pool.filter(t=>t.completed&&t.dueDate);
-    board.innerHTML=calendarHTML(activeRaw.concat(doneDated));bindCalendar(board);
+    board.innerHTML=calendarHTML(active.concat(sortTasks(doneDated)));bindCalendar(board);
   }
   else if(state.view==="list"&&state.tab==="daily"){
     board.innerHTML=dailySplitHTML(active);bindRows(board);
