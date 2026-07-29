@@ -66,6 +66,18 @@ a{color:inherit}
 .mf .del-entry:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .mf .del-entry.armed{background:var(--red);color:#fff;border-color:var(--red)}
 body.locked .cal-clearmiss{display:none}
+.fab-batch{right:208px;background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:0 8px 22px rgba(28,33,31,.18);font-size:14px;padding:0 20px;height:52px;bottom:28px}
+.fab-batch:hover{background:var(--paper);transform:translateY(-2px)}
+@media(max-width:900px){.fab-batch .fab-label{display:none}.fab-batch{right:170px;padding:0 16px}}
+@media(max-width:640px){.fab-batch{right:150px;bottom:86px;height:48px}}
+body.locked .fab-batch{display:none}
+#bPreview{margin-top:6px}
+#bPreview table{width:100%;border-collapse:collapse;font-size:12.5px}
+#bPreview th{text-align:left;font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.55;padding:6px 8px}
+#bPreview td{padding:6px 8px;border-top:1px solid var(--line,#eee)}
+#bPreview td.d{white-space:nowrap;font-variant-numeric:tabular-nums}
+#bPreview .warn{color:var(--red,#c0392b)}
+#bPreview .sum{font-size:12px;opacity:.75;margin:8px 0 2px}
 #filterNote{display:none}
 #filterNote.on{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding:9px 14px;border-radius:12px;
   background:rgba(146,171,167,.16);border:1px solid rgba(146,171,167,.5);font-size:13px}
@@ -874,6 +886,10 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
   <button class="btn icon-only" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme"></button>
 </div>
 
+<button class="fab fab-batch" id="openBatch" aria-label="Batch schedule" title="Batch schedule a folder of work">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 13h8M8 16.5h5"/></svg>
+  <span class="fab-label">Batch</span>
+</button>
 <button class="fab" id="openAdd" aria-label="New Entry" title="New Entry">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg>
   <span class="fab-label">New Entry</span>
@@ -945,6 +961,23 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 <div id="fxBanner" class="fx-banner">All dailies wrapped<small>Great work today, team</small></div>
 
 <!-- Add / Edit modal -->
+<div class="scrim" id="batchScrim">
+  <div class="modal">
+    <div class="mh"><h2>Batch schedule</h2><button class="x" data-bclose><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+    <div class="mb">
+      <div class="frow"><label>Client</label><select class="inp" id="bClient"></select></div>
+      <div class="frow"><label>Edit type</label><select class="inp" id="bType"></select></div>
+      <div class="frow"><label>Editor <span class="opt">— optional, applied to all</span></label><select class="inp" id="bAssignee"></select></div>
+      <div class="frow"><label>Start from</label><input type="date" class="inp" id="bStart"><div class="hint">First task lands on the client&rsquo;s next open posting day on/after this date.</div></div>
+      <div class="frow"><label>Folders <span class="opt">— one per line</span></label>
+        <textarea class="inp" id="bList" rows="7" placeholder="Paste one folder per line. Either:&#10;  Broadmoor 3-26&#10;or with its Frame.io link:&#10;  Broadmoor 3-26 | https://next.frame.io/project/…/…"></textarea>
+        <div class="hint">Folder name becomes the project name; the link (if given) becomes the Footage URL.</div>
+      </div>
+      <div id="bPreview"></div>
+    </div>
+    <div class="mf"><span style="flex:1"></span><button class="btn" data-bclose>Cancel</button><button class="btn" id="bPreviewBtn">Preview</button><button class="btn primary" id="bCreate" disabled>Create tasks</button></div>
+  </div>
+</div>
 <div class="scrim" id="addScrim">
   <div class="modal">
     <div class="mh"><h2 id="addTitle">New Entry</h2><button class="x" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
@@ -1439,7 +1472,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.7.0", APP_BUILD="2026-07-26";
+const APP_VERSION="2.8.0", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1491,6 +1524,87 @@ function updateCounts(){
 
 /* ============ filter & sort ============ */
 function passCat(t){if(state.cat==="all")return true;const c=clientByAbbr(t.clientAbbr);return c&&c.cat===state.cat;}
+/* ===== batch schedule ===== */
+// Next N OPEN posting days for a client: on their schedule, not skipped,
+// nothing already booked, and no two batch items on the same day.
+function nextOpenSlots(abbr,count,fromDate){
+  const days=SCHEDULE[abbr]||[];
+  const out=[]; const used=new Set();
+  const start=(fromDate&&/^\d{4}-\d{2}-\d{2}$/.test(fromDate))?fromDate:todayStr();
+  const d=new Date(start+"T00:00:00");
+  if(isNaN(d))return out;
+  const booked=cand=>state.tasks.some(t=>t.clientAbbr===abbr&&t.dueDate===cand&&t.type!=="filming"&&t.type!=="braindump");
+  for(let i=0;i<400&&out.length<count;i++,d.setDate(d.getDate()+1)){
+    const cand=ymd(d);
+    if(days.length&&!days.includes(d.getDay()))continue;
+    if(isSkipped(abbr,cand)||booked(cand)||used.has(cand))continue;
+    out.push(cand); used.add(cand);
+  }
+  return out;
+}
+function parseBatchList(raw){
+  return String(raw||"").split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(line=>{
+    // "Name | url"  ·  "Name  https://…"  ·  bare url  ·  bare name
+    let name=line,url="";
+    const bar=line.split("|");
+    if(bar.length>1&&/^https?:\/\//i.test(bar[bar.length-1].trim())){
+      url=bar.pop().trim(); name=bar.join("|").trim();
+    }else{
+      const m=line.match(/^(.*?)\s+(https?:\/\/\S+)$/);
+      if(m){name=m[1].trim();url=m[2].trim();}
+      else if(/^https?:\/\//i.test(line)){url=line;name=decodeURIComponent(line.split("/").filter(Boolean).pop()||"Untitled");}
+    }
+    return {name:name||"Untitled",url};
+  });
+}
+function batchRows(){
+  const abbr=$("#bClient").value, raw=$("#bList").value;
+  const items=parseBatchList(raw);
+  const slots=nextOpenSlots(abbr,items.length,$("#bStart").value);
+  return items.map((it,i)=>({...it,due:slots[i]||null}));
+}
+function renderBatchPreview(){
+  const el=$("#bPreview"), abbr=$("#bClient").value;
+  const rows=batchRows();
+  const btn=$("#bCreate");
+  if(!rows.length){el.innerHTML='<div class="sum">Nothing to schedule yet — paste at least one folder above.</div>';btn.disabled=true;return;}
+  const days=SCHEDULE[abbr]||[];
+  const short=rows.filter(r=>!r.due).length;
+  const nice=ds=>new Date(ds+"T12:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+  el.innerHTML=`<div class="sum">${rows.length} folder${rows.length>1?"s":""} &rarr; ${abbr}${days.length?"":" (no posting schedule set — using every day)"}${short?` &middot; <span class="warn">${short} couldn't be placed</span>`:""}</div>
+    <table><thead><tr><th>Due</th><th>Project name</th><th>Footage</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td class="d">${r.due?nice(r.due):'<span class="warn">no slot</span>'}</td><td>${esc(r.name)}</td><td>${r.url?"link":"&mdash;"}</td></tr>`).join("")}
+    </tbody></table>`;
+  btn.disabled=!rows.some(r=>r.due);
+}
+function openBatch(){
+  if(state.locked||!canEdit()){toast("Managers and admins only");return;}
+  fillClientSelect($("#bClient"));
+  $("#bType").innerHTML=TYPES.filter(t=>t.id!=="filming"&&t.id!=="braindump").map(t=>`<option value="${esc(t.id)}">${esc(t.label)}</option>`).join("");
+  $("#bAssignee").innerHTML=bdEdOpts("");
+  $("#bStart").value=todayStr();
+  $("#bList").value=""; $("#bPreview").innerHTML=""; $("#bCreate").disabled=true;
+  $("#batchScrim").classList.add("open");
+}
+async function createBatch(){
+  if(state.locked||!canEdit())return;
+  const abbr=$("#bClient").value, type=$("#bType").value, asg=$("#bAssignee").value;
+  const rows=batchRows().filter(r=>r.due);
+  if(!rows.length){toast("Nothing to create");return;}
+  const btn=$("#bCreate"); btn.disabled=true; btn.textContent="Creating…";
+  let made=0;
+  for(const r of rows){
+    const task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type,clientAbbr:abbr,
+      projectName:r.name,assignee:asg,dueDate:r.due,projectUrl:"",footageUrl:r.url||"",audioUrl:"",
+      notes:"",delivered:false,deliveredAt:null,recur:"none",revision:false,
+      completed:false,completedAt:null,createdAt:Date.now()};
+    try{ await backend.upsertTask(task); made++; }catch(e){}
+  }
+  btn.textContent="Create tasks";
+  $("#batchScrim").classList.remove("open");
+  touchActivity(); refreshUI();
+  toast(made+" task"+(made===1?"":"s")+" scheduled for "+abbr);
+}
 function renderFilterNote(){
   const el=document.querySelector("#filterNote"); if(!el)return;
   const listy=(state.view==="list"||state.view==="calendar");
@@ -3098,6 +3212,12 @@ function onStatClick(kind){
 }
 function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
+  const _bo=$("#openBatch"); if(_bo)_bo.onclick=openBatch;
+  const _bp=$("#bPreviewBtn"); if(_bp)_bp.onclick=renderBatchPreview;
+  const _bc=$("#bCreate"); if(_bc)_bc.onclick=createBatch;
+  ["bClient","bType","bStart"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{if($("#bList").value.trim())renderBatchPreview();};});
+  const _bl=$("#bList"); if(_bl)_bl.addEventListener("input",()=>{if(!$("#bList").value.trim()){$("#bPreview").innerHTML="";$("#bCreate").disabled=true;}});
+  document.querySelectorAll("[data-bclose]").forEach(b=>b.onclick=()=>$("#batchScrim").classList.remove("open"));
   $("#fNextSched").onclick=()=>{
     if(state.locked||$("#fDue").readOnly)return;
     const abbr=$("#fClient").value;
