@@ -1480,7 +1480,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.9.1", APP_BUILD="2026-07-26";
+const APP_VERSION="2.9.2", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1945,7 +1945,10 @@ function calendarHTML(tasks){
   for(let i=0;i<42;i++){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
     const ds=ymd(d), other=d.getMonth()!==m, isToday=ds===todayLocal;
-    const chips=(dated[ds]||[]).map(calChip).join("")+(other?"":ghostsFor(ds));
+    // ghosts render on adjacent-month days too — the leading/trailing week of a
+    // month view is still a real working week, and hiding its unscheduled slots
+    // made this week look fully booked whenever you were viewing next month.
+    const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds);
     cells+=`<div class="cal-cell ${other?"other":""} ${isToday?"today":""}" data-date="${ds}"><span class="cal-num">${d.getDate()}</span>${chips}</div>`;
   }
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
