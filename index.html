@@ -66,6 +66,11 @@ a{color:inherit}
 .mf .del-entry:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .mf .del-entry.armed{background:var(--red);color:#fff;border-color:var(--red)}
 body.locked .cal-clearmiss{display:none}
+.fio-row{display:flex;gap:8px;align-items:stretch}
+.fio-row .inp{flex:1;min-width:0}
+.fio-row .btn{flex:0 0 auto;white-space:nowrap}
+#bFioMsg.err{color:var(--red,#c0392b)}
+#bFioMsg.ok{color:var(--sage-deep,#3f7457)}
 .fab-batch{right:208px;background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:0 8px 22px rgba(28,33,31,.18);font-size:14px;padding:0 20px;height:52px;bottom:28px}
 .fab-batch:hover{background:var(--paper);transform:translateY(-2px)}
 @media(max-width:900px){.fab-batch .fab-label{display:none}.fab-batch{right:170px;padding:0 16px}}
@@ -969,6 +974,10 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
       <div class="frow"><label>Edit type</label><select class="inp" id="bType"></select></div>
       <div class="frow"><label>Editor <span class="opt">— optional, applied to all</span></label><select class="inp" id="bAssignee"></select></div>
       <div class="frow"><label>Start from</label><input type="date" class="inp" id="bStart"><div class="hint">First task lands on the client&rsquo;s next open posting day on/after this date.</div></div>
+      <div class="frow"><label>Frame.io folder <span class="opt">— optional, pulls the list for you</span></label>
+        <div class="fio-row"><input type="text" class="inp" id="bFio" placeholder="Paste a next.frame.io folder link"><button type="button" class="btn" id="bFetch">Fetch folders</button></div>
+        <div class="hint" id="bFioMsg">Paste the parent folder — each subfolder inside becomes one scheduled task.</div>
+      </div>
       <div class="frow"><label>Folders <span class="opt">— one per line</span></label>
         <textarea class="inp" id="bList" rows="7" placeholder="Paste one folder per line. Either:&#10;  Broadmoor 3-26&#10;or with its Frame.io link:&#10;  Broadmoor 3-26 | https://next.frame.io/project/…/…"></textarea>
         <div class="hint">Folder name becomes the project name; the link (if given) becomes the Footage URL.</div>
@@ -1472,7 +1481,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.8.0", APP_BUILD="2026-07-26";
+const APP_VERSION="2.9.0", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1577,6 +1586,38 @@ function renderBatchPreview(){
     </tbody></table>`;
   btn.disabled=!rows.some(r=>r.due);
 }
+// api.frame.io sends no CORS headers, so the folder listing has to come from
+// our Worker, which holds the Frame.io token server-side. Falls back to the
+// paste box whenever the bridge isn't reachable.
+const FIO_BRIDGE="https://anomaly-frameio-bridge.weathered-bird-9848.workers.dev";
+async function fetchFrameioFolders(){
+  const raw=$("#bFio").value.trim(), msg=$("#bFioMsg"), btn=$("#bFetch");
+  if(!raw){msg.className="hint err";msg.textContent="Paste a Frame.io folder link first.";return;}
+  if(!AUTH_USER||!AUTH_USER.getIdToken){msg.className="hint err";msg.textContent="Sign in again — no active session.";return;}
+  btn.disabled=true; const label=btn.textContent; btn.textContent="Fetching…";
+  msg.className="hint"; msg.textContent="Asking Frame.io…";
+  try{
+    const idToken=await AUTH_USER.getIdToken();
+    const q=/^https?:\/\//i.test(raw)?("url="+encodeURIComponent(raw)):("project="+encodeURIComponent(raw));
+    const r=await fetch(FIO_BRIDGE+"/folders?"+q,{headers:{Authorization:"Bearer "+idToken}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||("Bridge returned "+r.status));
+    if(!d.folders||!d.folders.length){
+      msg.className="hint err";
+      msg.textContent="No subfolders in there"+(d.fileCount?` — just ${d.fileCount} file(s). Point at the parent folder.`:".");
+      return;
+    }
+    $("#bList").value=d.folders.map(f=>`${f.name} | ${f.url}`).join("\n");
+    msg.className="hint ok"; msg.textContent=`Pulled ${d.folders.length} folder${d.folders.length>1?"s":""} — check the dates below, then create.`;
+    renderBatchPreview();
+  }catch(e){
+    const m=String(e.message||e);
+    msg.className="hint err";
+    msg.textContent=/Failed to fetch|NetworkError/i.test(m)
+      ? "Can't reach the Frame.io bridge — paste the folder list below instead."
+      : m;
+  }finally{ btn.disabled=false; btn.textContent=label; }
+}
 function openBatch(){
   if(state.locked||!canEdit()){toast("Managers and admins only");return;}
   fillClientSelect($("#bClient"));
@@ -1584,6 +1625,7 @@ function openBatch(){
   $("#bAssignee").innerHTML=bdEdOpts("");
   $("#bStart").value=todayStr();
   $("#bList").value=""; $("#bPreview").innerHTML=""; $("#bCreate").disabled=true;
+  $("#bFio").value=""; const _m=$("#bFioMsg"); _m.className="hint"; _m.textContent="Paste the parent folder — each subfolder inside becomes one scheduled task.";
   $("#batchScrim").classList.add("open");
 }
 async function createBatch(){
@@ -3214,6 +3256,8 @@ function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
   const _bo=$("#openBatch"); if(_bo)_bo.onclick=openBatch;
   const _bp=$("#bPreviewBtn"); if(_bp)_bp.onclick=renderBatchPreview;
+  const _bf=$("#bFetch"); if(_bf)_bf.onclick=fetchFrameioFolders;
+  const _bfi=$("#bFio"); if(_bfi)_bfi.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();fetchFrameioFolders();}});
   const _bc=$("#bCreate"); if(_bc)_bc.onclick=createBatch;
   ["bClient","bType","bStart"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{if($("#bList").value.trim())renderBatchPreview();};});
   const _bl=$("#bList"); if(_bl)_bl.addEventListener("input",()=>{if(!$("#bList").value.trim()){$("#bPreview").innerHTML="";$("#bCreate").disabled=true;}});
