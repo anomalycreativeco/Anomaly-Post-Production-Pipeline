@@ -71,11 +71,11 @@ body.locked .cal-clearmiss{display:none}
 .fio-row .btn{flex:0 0 auto;white-space:nowrap}
 #bFioMsg.err{color:var(--red,#c0392b)}
 #bFioMsg.ok{color:var(--sage-deep,#3f7457)}
-.fab-batch{right:208px;background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:0 8px 22px rgba(28,33,31,.18);font-size:14px;padding:0 20px;height:52px;bottom:28px}
-.fab-batch:hover{background:var(--paper);transform:translateY(-2px)}
-@media(max-width:900px){.fab-batch .fab-label{display:none}.fab-batch{right:170px;padding:0 16px}}
-@media(max-width:640px){.fab-batch{right:150px;bottom:86px;height:48px}}
-body.locked .fab-batch{display:none}
+.fab.fab-batch{right:26px;bottom:94px;background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:0 8px 22px rgba(28,33,31,.18);font-size:14px;padding:0 20px;height:52px}
+.fab.fab-batch:hover{background:var(--paper);transform:translateY(-2px)}
+@media(max-width:900px){.fab.fab-batch{padding:0 16px}}
+@media(max-width:640px){.fab.fab-batch{right:16px;bottom:146px;height:48px}}
+body.locked .fab.fab-batch{display:none}
 #bPreview{margin-top:6px}
 #bPreview table{width:100%;border-collapse:collapse;font-size:12.5px}
 #bPreview th{text-align:left;font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.55;padding:6px 8px}
@@ -958,7 +958,6 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
   <button class="pnav" data-view="filming" title="Footage Runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Filming</span></button>
   <button class="pnav" data-view="delivery" title="Delivery Panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg><span>Delivery</span></button>
   <button class="pnav" data-view="braindump" title="Sticky Notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/></svg><span>Sticky Notes</span></button>
-  <button class="pnav" data-view="documents" title="Documents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg><span>Documents</span></button>
   <button class="pnav" data-view="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
 </nav>
 
@@ -1361,7 +1360,7 @@ async function init(){
   wireUp(); setThemeIcon();
   const vb=$("#verBadge"); if(vb){vb.textContent="v"+APP_VERSION; vb.title="built "+APP_BUILD;}
   setInterval(()=>{const el=document.getElementById("tzNow"); if(el) el.textContent=fmtTZNow();},1000);
-  const savedView=LS.get(LK_VIEW,"home")||"home"; state.view=savedView;
+  let savedView=LS.get(LK_VIEW,"home")||"home"; if(savedView==="documents"){savedView="calendar";LS.set(LK_VIEW,savedView);} state.view=savedView;
   document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===savedView));
   try{state.admin=sessionStorage.getItem("acc_admin")==="1";}catch(e){}
   ME=LS.get("acc_me","")||""; if(ME&&LS.get("acc_personal",true))state.assignee=ME;
@@ -1481,7 +1480,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.9.0", APP_BUILD="2026-07-26";
+const APP_VERSION="2.9.1", APP_BUILD="2026-07-26";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1774,8 +1773,8 @@ function bindHome(scope){
 function render(){
   updateCounts();
   const ctrls=document.querySelector(".controls");
-  if(ctrls)ctrls.style.display=(state.view==="home"||state.view==="dashboard"||state.view==="settings"||state.view==="filming"||state.view==="delivery"||state.view==="braindump"||state.view==="documents")?"none":"";
-  const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("wide", state.view==="home"||state.view==="braindump"||state.view==="documents");
+  if(ctrls)ctrls.style.display=(state.view==="home"||state.view==="dashboard"||state.view==="settings"||state.view==="filming"||state.view==="delivery"||state.view==="braindump")?"none":"";
+  const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("wide", state.view==="home"||state.view==="braindump");
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
   renderFilterNote();
@@ -3209,8 +3208,8 @@ function applyLockUI(){
   document.body.classList.toggle("locked",state.locked);
   const guest=isGuest();
   const fab=$("#openAdd");if(fab)fab.style.display=state.locked?"none":"";
-  const hide = guest ? ["home","dashboard","delivery","settings","filming","braindump","documents"] : (state.locked?["dashboard","delivery","settings"]:[]);
-  ["home","dashboard","delivery","settings","filming","braindump","documents"].forEach(v=>{const n=document.querySelector('[data-view="'+v+'"]');if(n)n.style.display=hide.includes(v)?"none":"";});
+  const hide = guest ? ["home","dashboard","delivery","settings","filming","braindump"] : (state.locked?["dashboard","delivery","settings"]:[]);
+  ["home","dashboard","delivery","settings","filming","braindump"].forEach(v=>{const n=document.querySelector('[data-view="'+v+'"]');if(n)n.style.display=hide.includes(v)?"none":"";});
   const bell=$("#bellBtn");if(bell)bell.style.display=guest?"none":"";
   const so=$("#signOutBtn");if(so&&guest)so.style.display="none";
   const pb=$("#previewBadge");if(pb)pb.style.display=guest?"":"none";
