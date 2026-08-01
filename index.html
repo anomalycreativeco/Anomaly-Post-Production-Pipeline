@@ -986,6 +986,13 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
     <div class="mf"><span style="flex:1"></span><button class="btn" data-bclose>Cancel</button><button class="btn" id="bPreviewBtn">Preview</button><button class="btn primary" id="bCreate" disabled>Create tasks</button></div>
   </div>
 </div>
+<div class="scrim" id="aiScrim">
+  <div class="modal">
+    <div class="mh"><h2>Jarvis proposal</h2><button class="x" data-aiclose><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+    <div class="mb"><div class="sum" id="aiSummary"></div><div id="aiPreview"></div></div>
+    <div class="mf"><span style="flex:1"></span><button class="btn" data-aiclose>Reject all</button><button class="btn primary" id="aiAccept" disabled>Accept</button></div>
+  </div>
+</div>
 <div class="scrim" id="addScrim">
   <div class="modal">
     <div class="mh"><h2 id="addTitle">New Entry</h2><button class="x" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
@@ -1480,7 +1487,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.9.2", APP_BUILD="2026-07-26";
+const APP_VERSION="2.10.0", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -3386,19 +3393,168 @@ function jContext(){
   return {
     today:todayStr(),
     counts:{active:active.length,dueToday:active.filter(t=>t.dueDate===todayStr()).length},
+    weekday:new Date(todayStr()+"T00:00:00").getDay(),
     clients:state.clients.map(c=>({abbr:c.abbr,name:c.name,cat:c.cat})),
-    tasks:active.slice(0,150).map(t=>({id:t.id,client:t.clientAbbr,type:t.type,name:t.projectName||"",due:t.dueDate||null,delivered:!!t.delivered}))
+    editors:(EDITORS_LIST||[]).map(e=>e.name),
+    types:(TYPES||[]).filter(t=>t.id!=="braindump").map(t=>t.id),
+    schedule:SCHEDULE,
+    tasks:active.slice(0,150).map(t=>({id:t.id,client:t.clientAbbr,type:t.type,name:t.projectName||"",due:t.dueDate||null,assignee:t.assignee||null,delivered:!!t.delivered}))
   };
+}
+
+/* ---- AI scheduling proposals -------------------------------------------
+   Speak an action; Claude says WHAT to do and WHICH tasks, the app works out
+   the dates. Letting the model pick dates would ignore SCHEDULE, skips and
+   existing bookings — nextOpenSlots already knows all three, and the Batch
+   button schedules the same way. */
+const AI_STAFF_DOMAIN="@anomalycreativestudio.com";
+const aiAllowed=()=>String(MYEMAIL||"").toLowerCase().endsWith(AI_STAFF_DOMAIN);
+let AI_PROP=null;
+
+const AI_PROPOSAL_PROMPT=` When the user asks you to CHANGE the schedule, return a "proposal" key alongside "say": {"say":string,"action":null,"proposal":{"summary":string,"ops":[...]}}. Op shapes: {"op":"create","client":ABBR,"type":TYPE,"count":N,"assignee":name|null,"projectName":string,"when":{"date":"YYYY-MM-DD"}|{"slotFrom":"YYYY-MM-DD"}} | {"op":"move","id":TASKID,"when":{"date":"YYYY-MM-DD"}|{"slotFrom":"YYYY-MM-DD"}} | {"op":"reassign","id":TASKID,"assignee":name} | {"op":"stage","id":TASKID,"to":"posted|delivered|reopen"}. Use "date" ONLY when the user named a specific day; otherwise use "slotFrom" (the earliest acceptable date) and the app computes the client's open posting days itself — CONTEXT.schedule maps client abbr to allowed weekdays (0=Sunday) but do NOT compute dates from it yourself. Use exact ids, client abbrs, types and editor names from CONTEXT; never invent them. If the request is ambiguous (several tasks match), return proposal:null and ask which one. Return at most one of action or proposal.`;
+
+// nextOpenSlots only sees tasks already committed, so two ops in one proposal
+// would otherwise resolve to the same day.
+function aiClaimSlot(abbr,fromDate,claimed){
+  const cands=nextOpenSlots(abbr,12,fromDate||todayStr());
+  for(const c of cands){ if(!claimed.has(c)){ claimed.add(c); return c; } }
+  return null;
+}
+function aiResolveOps(ops){
+  const rows=[], claimed=new Set();
+  const editors=(EDITORS_LIST||[]).map(e=>e.name);
+  const typeIds=(TYPES||[]).map(t=>t.id);
+  (ops||[]).forEach(o=>{
+    const push=r=>rows.push(Object.assign({op:o.op,removed:false,error:""},r));
+    if(o.op==="create"){
+      const abbr=String(o.client||"").toUpperCase();
+      const cl=state.clients.find(c=>c.abbr===abbr);
+      const type=typeIds.includes(o.type)?o.type:"daily";
+      const asg=editors.includes(o.assignee)?o.assignee:"";
+      const n=Math.min(Math.max(1,parseInt(o.count,10)||1),20);
+      for(let i=0;i<n;i++){
+        const when=o.when||{};
+        const due=when.date&&/^\d{4}-\d{2}-\d{2}$/.test(when.date)&&n===1
+          ? when.date : aiClaimSlot(abbr,when.slotFrom||when.date,claimed);
+        push({client:abbr,type,assignee:asg,due,prevDue:null,prevAssignee:null,
+          projectName:o.projectName||"",
+          error:!cl?("Unknown client "+abbr):(due?"":"No open posting day")});
+      }
+      return;
+    }
+    const t=state.tasks.find(x=>x.id===o.id);
+    if(!t){ push({client:"",type:"",due:null,error:"That task no longer exists"}); return; }
+    if(o.op==="move"){
+      const when=o.when||{};
+      const due=when.date&&/^\d{4}-\d{2}-\d{2}$/.test(when.date)
+        ? when.date : aiClaimSlot(t.clientAbbr,when.slotFrom,claimed);
+      push({taskId:t.id,client:t.clientAbbr,type:t.type,projectName:t.projectName||"",
+        assignee:t.assignee||"",due,prevDue:t.dueDate||null,prevAssignee:t.assignee||"",
+        error:due?"":"No open posting day"});
+    } else if(o.op==="reassign"){
+      const asg=editors.includes(o.assignee)?o.assignee:"";
+      push({taskId:t.id,client:t.clientAbbr,type:t.type,projectName:t.projectName||"",
+        assignee:asg,due:t.dueDate||null,prevDue:t.dueDate||null,prevAssignee:t.assignee||"",
+        error:asg?"":("Unknown editor "+(o.assignee||""))});
+    } else if(o.op==="stage"){
+      const to=["posted","delivered","reopen"].includes(o.to)?o.to:"";
+      push({taskId:t.id,client:t.clientAbbr,type:t.type,projectName:t.projectName||"",
+        assignee:t.assignee||"",due:t.dueDate||null,prevDue:t.dueDate||null,stage:to,
+        error:to?"":"Unclear what to mark"});
+    } else push({client:"",type:"",due:null,error:"Unsupported action"});
+  });
+  return rows;
+}
+const AI_BADGE={create:"NEW",move:"MOVE",reassign:"ASSIGN",stage:"STAGE"};
+function renderAiPreview(){
+  const el=$("#aiPreview"),btn=$("#aiAccept"),sum=$("#aiSummary");
+  const rows=(AI_PROP&&AI_PROP.rows)||[];
+  const live=rows.filter(r=>!r.removed&&!r.error);
+  sum.textContent=(AI_PROP&&AI_PROP.summary)||"";
+  const nice=ds=>ds?new Date(ds+"T12:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):"\u2014";
+  el.innerHTML=`<table><thead><tr><th></th><th>What</th><th>Due</th><th>Editor</th><th></th></tr></thead><tbody>
+    ${rows.map((r,i)=>`<tr data-i="${i}" style="${r.removed?"opacity:.35":""}">
+      <td class="d">${AI_BADGE[r.op]||r.op}</td>
+      <td>${esc(r.client||"")}${r.projectName?" &middot; "+esc(r.projectName):""}${r.stage?" &rarr; "+esc(r.stage):""}
+        ${r.error?`<span class="warn">${esc(r.error)}</span>`:""}</td>
+      <td class="d">${r.op==="stage"||r.op==="reassign"||r.error?nice(r.due):
+        `${r.prevDue&&r.prevDue!==r.due?`<span class="warn">${nice(r.prevDue)}</span> &rarr; `:""}
+         <input type="date" class="inp" data-aid value="${r.due||""}" style="width:150px">`}</td>
+      <td>${r.op==="create"||r.op==="reassign"?`<select class="inp" data-aia>${bdEdOpts(r.assignee||"")}</select>`:esc(r.assignee||"\u2014")}</td>
+      <td><button class="x" data-aidel title="Drop this change">&times;</button></td>
+    </tr>`).join("")}</tbody></table>`;
+  btn.disabled=!live.length;
+  btn.textContent=live.length?`Accept ${live.length} change${live.length>1?"s":""}`:"Accept";
+}
+function openAiProposal(p){
+  AI_PROP={summary:p.summary||"",rows:aiResolveOps(p.ops)};
+  renderAiPreview();
+  $("#aiScrim").classList.add("open");
+}
+function closeAiProposal(){ $("#aiScrim").classList.remove("open"); AI_PROP=null; }
+
+/* Commit through applyOps plus ONE synthetic history entry. Going through
+   backend.upsertTask would record a separate undo per row (the Firestore
+   round-trips defeat the 160ms coalescing), so reverting a five-row proposal
+   would take five presses. It should take one. */
+async function aiCommit(){
+  if(!AI_PROP)return;
+  if(state.locked||!aiAllowed()){toast("Not permitted");return;}
+  const rows=AI_PROP.rows.filter(r=>!r.removed&&!r.error);
+  if(!rows.length)return;
+  const undo=[],redo=[]; let skipped=false;
+  for(const r of rows){
+    if(r.op==="create"){
+      const t={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:r.type,clientAbbr:r.client,
+        projectName:r.projectName||"",assignee:r.assignee||"",dueDate:r.due||null,projectUrl:"",footageUrl:"",
+        audioUrl:"",notes:"",delivered:false,deliveredAt:null,recur:"none",revision:false,
+        completed:false,completedAt:null,createdAt:Date.now()};
+      redo.push({k:"u",t}); undo.push({k:"r",id:t.id});
+      continue;
+    }
+    const prev=state.tasks.find(x=>x.id===r.taskId); if(!prev)continue;
+    let next=null;
+    if(r.op==="move"){
+      next={...prev,dueDate:r.due};
+      // vacating a posting day would otherwise re-flag it as missed, the same
+      // reason reassignMiss adds a skip when it moves work off a day
+      if(prev.dueDate&&prev.type!=="filming"&&prev.type!=="braindump"&&!isSkipped(prev.clientAbbr,prev.dueDate)){
+        SKIPS.add(skipKey(prev.clientAbbr,prev.dueDate)); skipped=true;
+      }
+    } else if(r.op==="reassign"){ next={...prev,assignee:r.assignee||""}; }
+    else if(r.op==="stage"){
+      if(r.stage==="delivered") next={...prev,delivered:true,deliveredAt:Date.now(),completed:true,completedAt:Date.now()};
+      else if(r.stage==="posted") next={...prev,completed:true,completedAt:Date.now()};
+      else next={...prev,completed:false,completedAt:null,delivered:false,deliveredAt:null};
+    }
+    if(!next)continue;
+    redo.push({k:"u",t:next}); undo.push({k:"u",t:{...prev}});
+  }
+  if(!redo.length){closeAiProposal();return;}
+  try{
+    await applyOps(redo);
+    _histLast=0;                       // don't coalesce with whatever came before
+    histRecord({undo,redo});
+    if(skipped)await backend.saveSkips();
+    closeAiProposal(); touchActivity(); refreshUI();
+    toast(redo.length+" change"+(redo.length>1?"s":"")+" applied \u2014 \u2318Z to undo");
+  }catch(e){ toast("Couldn't apply that ("+(e.code||e.message||e)+")"); }
 }
 
 /* ---- AI understanding (works when an endpoint is reachable; falls back otherwise) ---- */
 async function apiJarvis(text){
   const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),12000);
   const sys=`You are JARVIS, a calm, dry, lightly witty British AI butler running a video post-production & social-media pipeline app for Anomaly Creative & Co. Keep replies to 1-2 sentences, in character; address the user as "sir" occasionally. Answer questions and optionally return ONE action. Reply with ONLY minified JSON: {"say":string,"action":null|{"type":"navigate","view":"list|calendar|dashboard|settings"}|{"type":"filter","quick":"overdue|due7|completed|dailies|active"}|{"type":"stage","id":string,"to":"posted|delivered|reopen"}|{"type":"addPrefill","client":string,"date":"YYYY-MM-DD or null","kind":"daily|longform|clips|batch|listings"}}. Use real ids and client abbreviations from CONTEXT. Today is ${todayStr()}.`;
-  const body={model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:`CONTEXT:\n${JSON.stringify(jContext())}\n\nUSER: ${text}`}]};
-  const useWorker=(typeof JARVIS_ENDPOINT!=="undefined"&&JARVIS_ENDPOINT);
-  const endpoint=useWorker?(JARVIS_ENDPOINT.replace(/\/+$/,"")+"/ai"):"https://api.anthropic.com/v1/messages";
-  const headers=useWorker?{"Content-Type":"application/json"}:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
+  const body={model:"claude-sonnet-5",max_tokens:2000,system:sys+AI_PROPOSAL_PROMPT,messages:[{role:"user",content:`CONTEXT:\n${JSON.stringify(jContext())}\n\nUSER: ${text}`}]};
+  // Calling api.anthropic.com straight from the page can never work — the key
+  // would have to ship in a public file. Without the bridge, fail fast so
+  // askJarvis drops to the local engine instead of burning a round-trip on a
+  // request that always 401s.
+  if(!(typeof JARVIS_ENDPOINT!=="undefined"&&JARVIS_ENDPOINT)){clearTimeout(to);throw new Error("no-endpoint");}
+  if(!(AUTH_USER&&AUTH_USER.getIdToken)){clearTimeout(to);throw new Error("no-session");}
+  const idToken=await AUTH_USER.getIdToken();
+  const endpoint=JARVIS_ENDPOINT.replace(/\/+$/,"")+"/ai";
+  const headers={"Content-Type":"application/json",Authorization:"Bearer "+idToken};
   const resp=await fetch(endpoint,{method:"POST",headers,body:JSON.stringify(body),signal:ctrl.signal});
   clearTimeout(to);
   if(!resp.ok)throw new Error("api");
@@ -3573,7 +3729,14 @@ async function submitJarvis(){
   J.thinking=false;$("#jarvisOrb").classList.remove("thinking");jStatus("Standing by");
   if(res.action&&(res.action.type==="stage"||res.action.type==="addPrefill")&&state.locked)
     res={say:"The pipeline is locked for editing. Unlock it and I'll see to it at once."};
+  if(res.proposal&&res.proposal.ops&&res.proposal.ops.length){
+    if(state.locked) res={say:"The pipeline is locked for editing. Unlock it and I'll see to it at once."};
+    else if(!aiAllowed()) res={say:"Scheduling proposals are for Anomaly staff accounts, I'm afraid."};
+  }
   jLog("jarvis",res.say);jSpeak(res.say);
+  if(res.proposal&&res.proposal.ops&&res.proposal.ops.length&&!state.locked&&aiAllowed()){
+    try{openAiProposal(res.proposal);}catch(e){}
+  }
   if(res.action){try{jarvisDo(res.action);}catch(e){}}
 }
 function openJarvis(){
@@ -3585,7 +3748,24 @@ function openJarvis(){
 function closeJarvis(){const p=$("#jarvisPanel");p.classList.remove("open");setTimeout(()=>{p.hidden=true;},200);if("speechSynthesis"in window)speechSynthesis.cancel();}
 function toggleJarvis(){const p=$("#jarvisPanel");if(p.classList.contains("open"))closeJarvis();else openJarvis();}
 
+function initAiProposal(){
+  const scrim=$("#aiScrim"); if(!scrim)return;
+  scrim.addEventListener("click",e=>{ if(e.target.closest("[data-aiclose]")||e.target===scrim) closeAiProposal(); });
+  $("#aiAccept").addEventListener("click",aiCommit);
+  $("#aiPreview").addEventListener("change",e=>{
+    const tr=e.target.closest("tr[data-i]"); if(!tr||!AI_PROP)return;
+    const r=AI_PROP.rows[+tr.dataset.i]; if(!r)return;
+    if(e.target.hasAttribute("data-aid")) r.due=e.target.value||null;
+    else if(e.target.hasAttribute("data-aia")) r.assignee=e.target.value;
+  });
+  $("#aiPreview").addEventListener("click",e=>{
+    const btn=e.target.closest("[data-aidel]"); if(!btn||!AI_PROP)return;
+    const r=AI_PROP.rows[+btn.closest("tr[data-i]").dataset.i]; if(!r)return;
+    r.removed=!r.removed; renderAiPreview();
+  });
+}
 function initJarvis(){
+  initAiProposal();
   if("speechSynthesis"in window){jLoadVoice();speechSynthesis.onvoiceschanged=jLoadVoice;}
   const orb=$("#jarvisOrb");if(!orb)return;
   orb.onclick=toggleJarvis;
