@@ -123,6 +123,33 @@ body.locked .cchip-tick{display:none}
 :root{--rev:#d0631e}
 .cchip.revision{position:relative;overflow:hidden;box-shadow:inset 0 0 0 1.6px var(--rev)!important}
 .cchip.revision::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent 0 5px,rgba(208,99,30,.22) 5px 10px);pointer-events:none}
+/* ---- high priority ----
+   The type/urgency colour bar is an inline border-left, so priority chips are
+   rendered without it and this pseudo-element draws the bar instead — that way
+   it can carry a moving gradient. Deliberately ::before: .revision already owns
+   ::after, and a chip can be both. */
+.cchip.prio{position:relative;overflow:hidden;padding-left:10px;
+  box-shadow:inset 0 0 0 1px rgba(197,154,42,.55), 0 0 10px -3px rgba(214,171,60,.55)}
+.cchip.prio::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,#8a6a12 0%,#d9b445 18%,#fff3c4 34%,#ffe89a 46%,
+    #d9b445 62%,#a37f1c 80%,#fff3c4 100%);
+  background-size:100% 300%;animation:prioBar 2.6s linear infinite}
+/* the glint that travels across the chip */
+.cchip.prio .cchip-lbl{position:relative}
+.cchip.prio .cchip-lbl::after{content:"";position:absolute;inset:-3px -8px;pointer-events:none;
+  background:linear-gradient(105deg,transparent 42%,rgba(255,245,205,.28) 48%,
+    rgba(255,255,255,.5) 52%,rgba(255,245,205,.28) 56%,transparent 62%);
+  background-size:260% 100%;animation:prioGlint 3.4s ease-in-out infinite}
+.cchip.prio.done{box-shadow:none}
+.cchip.prio.done::before,.cchip.prio.done .cchip-lbl::after{animation:none;opacity:.5}
+@keyframes prioBar{0%{background-position:0 0}100%{background-position:0 -300%}}
+@keyframes prioGlint{0%{background-position:150% 0}55%,100%{background-position:-90% 0}}
+/* a moving gradient is exactly what motion sensitivity flags — keep the gold, drop the motion */
+@media(prefers-reduced-motion:reduce){
+  .cchip.prio::before,.cchip.prio .cchip-lbl::after{animation:none}
+  .cchip.prio .cchip-lbl::after{display:none}
+}
+.lg .sw.swprio{background:linear-gradient(180deg,#d9b445,#fff3c4,#a37f1c)}
 .cchip-rev{flex:0 0 auto;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:inherit;opacity:.4;cursor:pointer;font-size:12px;line-height:1;padding:0;border-radius:4px;position:relative;z-index:2}
 .cchip-rev:hover{opacity:1;background:rgba(255,255,255,.55)}
 .cchip-rev.on{opacity:1;color:var(--rev)}
@@ -1005,6 +1032,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
       <div class="frow" id="dueRow"><label id="dueLbl">Due Date</label><input type="date" class="inp" id="fDue"><button type="button" class="btn" id="fNextSched" style="margin-top:7px;font-size:12.5px" title="Jump the due date to the client's next posting day that has nothing scheduled yet">&rarr; Move to next open posting date</button><div class="hint" id="dueHint">Dailies don't use due dates.</div></div>
       <div class="frow" id="deliverRow"><label>Delivery</label><label class="chk"><input type="checkbox" id="fDelivered"> Delivered to Slack — production done, not yet posted</label></div>
       <div class="frow" id="revRow"><label>Revision</label><label class="chk"><input type="checkbox" id="fRevision"> Needs revision — flagged for rework</label></div>
+      <div class="frow" id="prioRow"><label>Priority</label><label class="chk"><input type="checkbox" id="fPriority"> High priority — gold bar on the calendar</label></div>
       <div class="frow" id="recurRow"><label>Recurring</label><select class="inp" id="fRecur"><option value="none">One-off</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="bimonthly">Every 2 months</option><option value="quarterly">Quarterly</option></select><div class="hint">When completed, the next run is auto-scheduled.</div></div>
       <div class="frow" id="refRow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><div class="cprow"><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"><button type="button" class="copybtn" data-copy="fProject" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
       <div class="f2">
@@ -1487,7 +1515,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.10.0", APP_BUILD="2026-08-01";
+const APP_VERSION="2.11.0", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1644,7 +1672,7 @@ async function createBatch(){
   for(const r of rows){
     const task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type,clientAbbr:abbr,
       projectName:r.name,assignee:asg,dueDate:r.due,projectUrl:"",footageUrl:r.url||"",audioUrl:"",
-      notes:"",delivered:false,deliveredAt:null,recur:"none",revision:false,
+      notes:"",delivered:false,deliveredAt:null,recur:"none",revision:false,priority:false,
       completed:false,completedAt:null,createdAt:Date.now()};
     try{ await backend.upsertTask(task); made++; }catch(e){}
   }
@@ -1884,14 +1912,17 @@ function calChip(t){
   const over=di&&di.days<0&&!t.completed;
   const isDeliv=!t.completed&&t.delivered&&(t.type==="daily"||t.type==="longform");
   const byUrg=state.chipColor==="urgency";
+  // High priority replaces the colour bar entirely — the gold one is drawn in
+  // CSS, so no inline border-left may be emitted or it would sit on top.
+  const prio=!!t.priority;
   let colorCls,style;
-  if(isDeliv){colorCls="ctype delivered";style=`style="background:linear-gradient(90deg, ${hexToRgba(typeColor(t.type),.28)} 0 50%, var(--canvas) 50% 100%);border-left:3px solid ${typeColor(t.type)}"`;}
-  else{colorCls=byUrg?urgClass(t):"ctype";style=byUrg?"":`style="background:${hexToRgba(typeColor(t.type),.16)};border-left:3px solid ${typeColor(t.type)}"`;}
+  if(isDeliv){colorCls="ctype delivered";style=`style="background:linear-gradient(90deg, ${hexToRgba(typeColor(t.type),.28)} 0 50%, var(--canvas) 50% 100%);${prio?"":`border-left:3px solid ${typeColor(t.type)}`}"`;}
+  else{colorCls=byUrg?urgClass(t):"ctype";style=byUrg?"":`style="background:${hexToRgba(typeColor(t.type),.16)};${prio?"":`border-left:3px solid ${typeColor(t.type)}`}"`;}
   const drag=(!t.completed&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)?'draggable="true"':"";
   const ready=t.footageUrl&&String(t.footageUrl).trim()?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
   const recur=(t.type==="filming"&&t.recur&&t.recur!=="none")?`<span class="cchip-recur" title="Recurring footage run">↻</span>`:"";
   const _ms=missStatus(t);
-  return `<span class="cchip ${colorCls} ${over&&!t.completed?"over":""} ${_ms==="missed"&&!t.completed?"missedchip":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
+  return `<span class="cchip ${colorCls} ${prio?"prio":""} ${over&&!t.completed?"over":""} ${_ms==="missed"&&!t.completed?"missedchip":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((prio?"HIGH PRIORITY — ":"")+(t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
 }
 function calHeader(title){
   return `<div class="cal-head">
@@ -1914,7 +1945,7 @@ function calLegend(){
     title="Edit type";
     items=TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>[tp.color,tp.label]);
   }
-  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span></div>`;
+  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span><span class="lg"><span class="sw swprio"></span>High priority</span></div>`;
 }
 function nodateStrip(nodate){return nodate.length?`<div class="cal-nodate"><span class="lbl">No date / dailies</span>${nodate.map(calChip).join("")}</div>`:"";}
 function calendarHTML(tasks){
@@ -2557,7 +2588,7 @@ function openAdd(prefillDate,prefillClient){
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   if(prefillClient)$("#fClient").value=prefillClient;
   $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
-  $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;
+  $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";const del=$("#delEntry");if(del){del.style.display="none";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
   setModalRO(false);
   $("#addScrim").classList.add("open");
@@ -2783,7 +2814,7 @@ function convertSticky(id){
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value=t.notes||"";
-  const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;
+  const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";
   $("#addScrim").classList.add("open");
 }
@@ -2839,7 +2870,7 @@ function autoGrowNotes(){
 function setModalRO(ro){
   ro=!!ro; const scrim=$("#addScrim"); if(scrim)scrim.classList.toggle("ro",ro);
   ["fClient","fName","fAssignee","fDue","fNotes","fProject","fFootage","fAudio"].forEach(fid=>{const el=$("#"+fid);if(!el)return;if(el.tagName==="SELECT")el.disabled=ro;else el.readOnly=ro;});
-  ["fDelivered","fRecur","fRevision"].forEach(fid=>{const el=$("#"+fid);if(el)el.disabled=ro;});
+  ["fDelivered","fRecur","fRevision","fPriority"].forEach(fid=>{const el=$("#"+fid);if(el)el.disabled=ro;});
   (window.requestAnimationFrame||setTimeout)(autoGrowNotes,0);
 }
 function openEdit(id){
@@ -2849,7 +2880,7 @@ function openEdit(id){
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
-  const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;
+  const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;const fp=$("#fPriority");if(fp)fp.checked=!!t.priority;
   const de=$("#dupEntry");if(de)de.style.display=ro?"none":"";const del=$("#delEntry");if(del){del.style.display=ro?"none":"";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
   setModalRO(ro);
   $("#addScrim").classList.add("open");
@@ -2859,7 +2890,7 @@ async function saveEntry(){
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
-  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false};
+  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false,priority:$("#fPriority")?$("#fPriority").checked:false};
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
@@ -3507,7 +3538,7 @@ async function aiCommit(){
     if(r.op==="create"){
       const t={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),type:r.type,clientAbbr:r.client,
         projectName:r.projectName||"",assignee:r.assignee||"",dueDate:r.due||null,projectUrl:"",footageUrl:"",
-        audioUrl:"",notes:"",delivered:false,deliveredAt:null,recur:"none",revision:false,
+        audioUrl:"",notes:"",delivered:false,deliveredAt:null,recur:"none",revision:false,priority:false,
         completed:false,completedAt:null,createdAt:Date.now()};
       redo.push({k:"u",t}); undo.push({k:"r",id:t.id});
       continue;
