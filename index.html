@@ -141,6 +141,15 @@ body.locked .cchip-tick{display:none}
 #bPreview tr.bdragging{opacity:.4}
 #bPreview tr.bdrop td{box-shadow:inset 0 2px 0 var(--sage)}
 #bPreview .bnum{font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px}
+#bPreview tr.bskip td{opacity:.5}
+#bPreview tr.bskip td:nth-child(3){text-decoration:line-through}
+#bPreview .bskiptag{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted)}
+#bPreview .bskipnote{color:var(--muted)}
+#bPreview .bkeep{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  background:none;border:1px solid var(--line);border-radius:6px;color:var(--muted);
+  cursor:pointer;padding:2px 7px;margin-left:6px;text-decoration:none;opacity:1}
+#bPreview .bkeep:hover{color:var(--ink);border-color:var(--muted)}
 .cchip.prio{position:relative;overflow:hidden;padding-left:10px;
   box-shadow:inset 0 0 0 1px rgba(197,154,42,.55), 0 0 10px -3px rgba(214,171,60,.55)}
 .cchip.prio::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
@@ -1544,7 +1553,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.12.0", APP_BUILD="2026-08-01";
+const APP_VERSION="2.13.0", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1629,11 +1638,30 @@ function parseBatchList(raw){
     return {name:name||"Untitled",url};
   });
 }
+/* Folders that are working scratch, not deliverables. Word-boundary matched so
+   real names survive: "Badger Lane" isn't BAD, "Temple St" isn't TEMP.
+   Deliberately NOT here — "old" (Old Mill Road is a plausible listing) and
+   "raw" (RAW is legitimate source footage). A wrong skip costs a missing post
+   nobody notices, which is worse than a junk task somebody deletes. */
+/* Two tiers, because word-boundary matching alone is not safe: "Bad Axe
+   Brewing" is a client, "BAD" is a scrap folder. Short generic words only
+   count when they are the WHOLE name; unambiguous phrases can appear anywhere
+   ("Broadmoor — BAD TAKES"). */
+const BATCH_SKIP_EXACT=/^(bad|junk|trash|scraps?|rejects?|rejected|unused|deleted?|archives?|archived|backups?|temp|tmp|misc|old|ignore|discards?|discarded|dump)$/i;
+const BATCH_SKIP_PHRASE=/\b(bad ?takes?|out ?takes?|outtakes?|bloopers?|do ?not ?use|dont ?use|don'?t ?use|not ?usable|unusable)\b/i;
+const BATCH_KEEP=new Set();          // names the user has explicitly put back
+const isJunkFolder=name=>{
+  const n=String(name||"").trim();
+  if(BATCH_KEEP.has(n.toLowerCase())) return false;
+  return BATCH_SKIP_EXACT.test(n)||BATCH_SKIP_PHRASE.test(n);
+};
 function batchRows(){
   const abbr=$("#bClient").value, raw=$("#bList").value;
-  const items=parseBatchList(raw);
-  const slots=nextOpenSlots(abbr,items.length,$("#bStart").value);
-  return items.map((it,i)=>({...it,due:slots[i]||null}));
+  const items=parseBatchList(raw).map(it=>({...it,skip:isJunkFolder(it.name)}));
+  // skipped folders consume no posting slot, so the rest keep consecutive days
+  const slots=nextOpenSlots(abbr,items.filter(it=>!it.skip).length,$("#bStart").value);
+  let k=0;
+  return items.map(it=> it.skip ? {...it,due:null} : {...it,due:slots[k++]||null});
 }
 /* The paste box stays the single source of truth for order — reordering
    rewrites its lines rather than keeping a parallel array, so batchRows() and
@@ -1655,16 +1683,19 @@ function renderBatchPreview(){
   const btn=$("#bCreate");
   if(!rows.length){el.innerHTML='<div class="sum">Nothing to schedule yet — paste at least one folder above.</div>';btn.disabled=true;return;}
   const days=SCHEDULE[abbr]||[];
-  const short=rows.filter(r=>!r.due).length;
+  const skipped=rows.filter(r=>r.skip).length;
+  const short=rows.filter(r=>!r.due&&!r.skip).length;
   const nice=ds=>new Date(ds+"T12:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
   const last=rows.length-1;
-  el.innerHTML=`<div class="sum">${rows.length} folder${rows.length>1?"s":""} &rarr; ${abbr}${days.length?"":" (no posting schedule set — using every day)"}${short?` &middot; <span class="warn">${short} couldn't be placed</span>`:""}${rows.length>1?' &middot; drag to reorder — the top one goes out first':""}</div>
+  el.innerHTML=`<div class="sum">${rows.length} folder${rows.length>1?"s":""} &rarr; ${abbr}${days.length?"":" (no posting schedule set — using every day)"}${short?` &middot; <span class="warn">${short} couldn't be placed</span>`:""}${skipped?` &middot; <span class="bskipnote">${skipped} skipped as scratch</span>`:""}${rows.length>1?' &middot; drag to reorder — the top one goes out first':""}</div>
     <table><thead><tr><th></th><th>Due</th><th>Project name</th><th>Footage</th></tr></thead><tbody>
-    ${rows.map((r,i)=>`<tr class="brow" data-bi="${i}">
-      <td class="bord"><span class="bnum">${i+1}</span>
+    ${rows.map((r,i)=>`<tr class="brow${r.skip?" bskip":""}" data-bi="${i}">
+      <td class="bord"><span class="bnum">${r.skip?"&mdash;":i+1}</span>
         <button class="bmv" data-bup="${i}" title="Move up" ${i===0?"disabled":""}>&#9650;</button><button class="bmv" data-bdn="${i}" title="Move down" ${i===last?"disabled":""}>&#9660;</button>
         <button class="bgrip" data-bgrip title="Drag to reorder" aria-label="Drag to reorder">&#10262;</button></td>
-      <td class="d">${r.due?nice(r.due):'<span class="warn">no slot</span>'}</td><td>${esc(r.name)}</td><td>${r.url?"link":"&mdash;"}</td></tr>`).join("")}
+      <td class="d">${r.skip?'<span class="bskiptag">skipped</span>':(r.due?nice(r.due):'<span class="warn">no slot</span>')}</td>
+      <td>${esc(r.name)}${r.skip?` <button class="bkeep" data-bkeep="${esc(r.name)}" title="Schedule this one after all">keep</button>`:""}</td>
+      <td>${r.url?"link":"&mdash;"}</td></tr>`).join("")}
     </tbody></table>`;
   btn.disabled=!rows.some(r=>r.due);
 }
@@ -1675,6 +1706,8 @@ function initBatchReorder(){
   const host=$("#bPreview"); if(!host)return;
   let dragRow=null;
   host.addEventListener("click",e=>{
+    const keep=e.target.closest("[data-bkeep]");
+    if(keep){ BATCH_KEEP.add(String(keep.dataset.bkeep||"").trim().toLowerCase()); renderBatchPreview(); return; }
     const up=e.target.closest("[data-bup]"), dn=e.target.closest("[data-bdn]");
     if(up){ const i=+up.dataset.bup; batchMove(i,i-1); return; }
     if(dn){ const i=+dn.dataset.bdn; batchMove(i,i+1); return; }
