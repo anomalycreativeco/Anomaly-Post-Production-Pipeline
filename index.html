@@ -128,6 +128,19 @@ body.locked .cchip-tick{display:none}
    rendered without it and this pseudo-element draws the bar instead — that way
    it can carry a moving gradient. Deliberately ::before: .revision already owns
    ::after, and a chip can be both. */
+/* batch preview — reorder before scheduling */
+#bPreview table tbody tr.brow{cursor:default}
+#bPreview .bord{white-space:nowrap;width:64px}
+#bPreview .bgrip{cursor:grab;touch-action:none;color:var(--muted);padding:2px 4px;
+  background:none;border:0;font-size:13px;line-height:1}
+#bPreview .bgrip:active{cursor:grabbing}
+#bPreview .bmv{background:none;border:0;color:var(--muted);cursor:pointer;font-size:11px;
+  line-height:1;padding:3px 3px}
+#bPreview .bmv:hover{color:var(--ink)}
+#bPreview .bmv:disabled{opacity:.25;cursor:default}
+#bPreview tr.bdragging{opacity:.4}
+#bPreview tr.bdrop td{box-shadow:inset 0 2px 0 var(--sage)}
+#bPreview .bnum{font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px}
 .cchip.prio{position:relative;overflow:hidden;padding-left:10px;
   box-shadow:inset 0 0 0 1px rgba(197,154,42,.55), 0 0 10px -3px rgba(214,171,60,.55)}
 .cchip.prio::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
@@ -1531,7 +1544,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.11.1", APP_BUILD="2026-08-01";
+const APP_VERSION="2.12.0", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1622,6 +1635,20 @@ function batchRows(){
   const slots=nextOpenSlots(abbr,items.length,$("#bStart").value);
   return items.map((it,i)=>({...it,due:slots[i]||null}));
 }
+/* The paste box stays the single source of truth for order — reordering
+   rewrites its lines rather than keeping a parallel array, so batchRows() and
+   createBatch() both pick the change up with no extra plumbing. Original line
+   text is preserved verbatim; nothing is re-serialised. */
+function batchLines(){
+  return String($("#bList").value||"").split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+}
+function batchMove(from,to){
+  const lines=batchLines();
+  if(from<0||from>=lines.length||to<0||to>=lines.length||from===to)return;
+  const [x]=lines.splice(from,1); lines.splice(to,0,x);
+  $("#bList").value=lines.join("\n");
+  renderBatchPreview();
+}
 function renderBatchPreview(){
   const el=$("#bPreview"), abbr=$("#bClient").value;
   const rows=batchRows();
@@ -1630,11 +1657,58 @@ function renderBatchPreview(){
   const days=SCHEDULE[abbr]||[];
   const short=rows.filter(r=>!r.due).length;
   const nice=ds=>new Date(ds+"T12:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
-  el.innerHTML=`<div class="sum">${rows.length} folder${rows.length>1?"s":""} &rarr; ${abbr}${days.length?"":" (no posting schedule set — using every day)"}${short?` &middot; <span class="warn">${short} couldn't be placed</span>`:""}</div>
-    <table><thead><tr><th>Due</th><th>Project name</th><th>Footage</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr><td class="d">${r.due?nice(r.due):'<span class="warn">no slot</span>'}</td><td>${esc(r.name)}</td><td>${r.url?"link":"&mdash;"}</td></tr>`).join("")}
+  const last=rows.length-1;
+  el.innerHTML=`<div class="sum">${rows.length} folder${rows.length>1?"s":""} &rarr; ${abbr}${days.length?"":" (no posting schedule set — using every day)"}${short?` &middot; <span class="warn">${short} couldn't be placed</span>`:""}${rows.length>1?' &middot; drag to reorder — the top one goes out first':""}</div>
+    <table><thead><tr><th></th><th>Due</th><th>Project name</th><th>Footage</th></tr></thead><tbody>
+    ${rows.map((r,i)=>`<tr class="brow" data-bi="${i}">
+      <td class="bord"><span class="bnum">${i+1}</span>
+        <button class="bmv" data-bup="${i}" title="Move up" ${i===0?"disabled":""}>&#9650;</button><button class="bmv" data-bdn="${i}" title="Move down" ${i===last?"disabled":""}>&#9660;</button>
+        <button class="bgrip" data-bgrip title="Drag to reorder" aria-label="Drag to reorder">&#10262;</button></td>
+      <td class="d">${r.due?nice(r.due):'<span class="warn">no slot</span>'}</td><td>${esc(r.name)}</td><td>${r.url?"link":"&mdash;"}</td></tr>`).join("")}
     </tbody></table>`;
   btn.disabled=!rows.some(r=>r.due);
+}
+/* Pointer-based like the rest of the app's sorting: same behaviour under a
+   finger, and hit-testing against row rects rather than elementFromPoint so a
+   row scrolled to the edge of the modal still accepts a drop. */
+function initBatchReorder(){
+  const host=$("#bPreview"); if(!host)return;
+  let dragRow=null;
+  host.addEventListener("click",e=>{
+    const up=e.target.closest("[data-bup]"), dn=e.target.closest("[data-bdn]");
+    if(up){ const i=+up.dataset.bup; batchMove(i,i-1); return; }
+    if(dn){ const i=+dn.dataset.bdn; batchMove(i,i+1); return; }
+  });
+  host.addEventListener("pointerdown",e=>{
+    const g=e.target.closest("[data-bgrip]"); if(!g)return;
+    dragRow=g.closest("tr.brow"); if(!dragRow)return;
+    e.preventDefault(); dragRow.classList.add("bdragging");
+    try{ g.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  host.addEventListener("pointermove",e=>{
+    if(!dragRow)return;
+    let over=null;
+    host.querySelectorAll("tr.brow").forEach(tr=>{
+      if(tr===dragRow)return;
+      const r=tr.getBoundingClientRect();
+      if(e.clientY>=r.top&&e.clientY<=r.bottom) over=tr;
+    });
+    host.querySelectorAll(".bdrop").forEach(x=>x.classList.remove("bdrop"));
+    if(over) over.classList.add("bdrop");
+  });
+  const endDrag=e=>{
+    if(!dragRow)return;
+    const from=+dragRow.dataset.bi;
+    let to=from;
+    const target=host.querySelector("tr.bdrop");
+    if(target) to=+target.dataset.bi;
+    dragRow.classList.remove("bdragging");
+    host.querySelectorAll(".bdrop").forEach(x=>x.classList.remove("bdrop"));
+    dragRow=null;
+    if(to!==from) batchMove(from,to);
+  };
+  host.addEventListener("pointerup",endDrag);
+  host.addEventListener("pointercancel",endDrag);
 }
 // api.frame.io sends no CORS headers, so the folder listing has to come from
 // our Worker, which holds the Frame.io token server-side. Falls back to the
@@ -1658,6 +1732,7 @@ async function fetchFrameioFolders(){
       return;
     }
     $("#bList").value=d.folders.map(f=>`${f.name} | ${f.url}`).join("\n");
+    renderBatchPreview();   // show the order straight away so it can be rearranged
     msg.className="hint ok"; msg.textContent=`Pulled ${d.folders.length} folder${d.folders.length>1?"s":""} — check the dates below, then create.`;
     renderBatchPreview();
   }catch(e){
@@ -3311,6 +3386,7 @@ function onStatClick(kind){
 function wireUp(){
   $("#openAdd").onclick=openAdd;$("#saveEntry").onclick=saveEntry;
   const _bo=$("#openBatch"); if(_bo)_bo.onclick=openBatch;
+  initBatchReorder();
   const _bp=$("#bPreviewBtn"); if(_bp)_bp.onclick=renderBatchPreview;
   const _bf=$("#bFetch"); if(_bf)_bf.onclick=fetchFrameioFolders;
   const _bfi=$("#bFio"); if(_bfi)_bfi.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();fetchFrameioFolders();}});
