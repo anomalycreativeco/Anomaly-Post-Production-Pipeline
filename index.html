@@ -1022,7 +1022,6 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
   <button class="pnav" data-view="dashboard" title="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span>Dashboard</span></button>
   <button class="pnav" data-view="filming" title="Footage Runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Filming</span></button>
   <button class="pnav" data-view="delivery" title="Delivery Panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg><span>Delivery</span></button>
-  <button class="pnav" data-view="braindump" title="Sticky Notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10l6-6V5a2 2 0 0 0-2-2z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/></svg><span>Sticky Notes</span></button>
   <button class="pnav" data-view="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
 </nav>
 
@@ -1553,7 +1552,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.13.0", APP_BUILD="2026-08-01";
+const APP_VERSION="2.14.0", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1949,7 +1948,15 @@ function render(){
   else if(state.view==="settings"){board.innerHTML=settingsHTML();bindSettings(board);}
   else if(state.view==="filming"){board.innerHTML=filmingHTML();bindFilming(board);}
   else if(state.view==="delivery"){board.innerHTML=deliveryHTML();}
-  else if(state.view==="braindump"){board.innerHTML=braindumpHTML();bindBraindump(board);}
+  else if(state.view==="braindump"){
+    // Sticky notes moved to the Studio Hub as Reminders (v2.14.0). Anyone
+    // landing here from a bookmark gets pointed at the new home.
+    board.innerHTML=`<div class="empty" style="text-align:center;padding:48px 20px">
+      <h3 style="margin:0 0 8px">Sticky notes are now Reminders</h3>
+      <p style="color:var(--muted);margin:0 0 16px">They live on the Studio Hub now, at the top of your home page — and you can set one for someone else.</p>
+      <a class="btn primary" href="https://anomalycreativeco.github.io/" target="_blank" rel="noopener">Open the Studio Hub</a>
+    </div>`;
+  }
   else if(state.view==="documents"){board.innerHTML=documentsHTML();bindDocuments(board);}
   else if(state.view==="dashboard"){board.innerHTML=dashboardHTML();bindDashboard(board);}
   else if(state.view==="calendar"){
@@ -2892,7 +2899,6 @@ function braindumpHTML(){
       <textarea class="bd-notes" data-act="notes" placeholder="Notes\u2026" rows="2" ${dis}>${esc(t.notes||"")}</textarea>
       <div class="bd-duerow ${t.dueDate&&t.dueDate<today?'over':''}"><span class="bd-due-lbl">Due</span><input type="date" class="bd-date" data-act="due" value="${esc(t.dueDate||'')}" ${dis}></div>
       <div class="bd-acts">
-        <button class="bd-btn convert" data-act="convert" title="Turn into a tracked deliverable for List / Calendar" ${dis}>\u2197 Convert</button>
         <button class="ic del" data-act="del" title="Delete" ${dis}>${TRASH}</button>
       </div>
     </div>`;
