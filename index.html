@@ -800,6 +800,14 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 @keyframes orbspin{to{transform:rotate(360deg)}}
 .jarvis-panel{position:fixed;left:24px;bottom:92px;z-index:56;width:370px;max-width:calc(100vw - 32px);max-height:min(68vh,560px);display:flex;flex-direction:column;background:rgba(18,28,26,.96);backdrop-filter:blur(10px);border:1px solid rgba(143,199,190,.35);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#dfeae7;opacity:0;transform:translateY(12px) scale(.98);transition:opacity .18s ease, transform .18s ease;overflow:hidden}
 .jarvis-panel.open{opacity:1;transform:none}
+/* The panel carries `hidden` when closed, but the rule above sets display:flex
+   and an author style beats the browser's [hidden] rule — so it stayed in the
+   page: invisible, but still swallowing every click across a 370x560 area over
+   the lower-left. Two belts: honour [hidden], and refuse pointer events until
+   it is actually open. */
+.jarvis-panel[hidden]{display:none}
+.jarvis-panel:not(.open){pointer-events:none}
+.jarvis-panel.open{pointer-events:auto}
 .jp-head{display:flex;align-items:center;gap:9px;padding:13px 14px;border-bottom:1px solid rgba(143,199,190,.18)}
 .jp-dot{width:9px;height:9px;border-radius:50%;background:#8fc7be;box-shadow:0 0 10px 2px rgba(143,199,190,.9);flex:0 0 auto}
 .jp-title{font-family:"Outfit";font-weight:700;letter-spacing:.18em;font-size:13px;color:#fff}
@@ -1552,7 +1560,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.14.0", APP_BUILD="2026-08-01";
+const APP_VERSION="2.14.1", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
