@@ -1560,7 +1560,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.14.1", APP_BUILD="2026-08-01";
+const APP_VERSION="2.14.2", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1588,13 +1588,34 @@ function matchesSearch(t){
 }
 
 /* ============ selects & tabs ============ */
+/* Refill a <select> without disturbing the person using it.
+
+   These run from the `config` snapshot, which fires on ANY config write by
+   ANYONE — a dismissed posting day, a settings tweak, a version publish. The
+   old code assigned innerHTML unconditionally, which drops the current
+   selection on the floor: you would pick an editor, someone else's write would
+   land, and your choice reset to Unassigned. With writes arriving in quick
+   succession it read as the dropdown flickering and refusing to hold a value.
+
+   So: skip entirely when the options are unchanged, never rebuild a select the
+   user is actively in, and restore the selection when a rebuild is genuine. */
+function fillSelect(el,html){
+  if(!el) return;
+  if(el.dataset.optsig===html) return;              // nothing actually changed
+  if(document.activeElement===el) return;           // in use — leave it alone
+  const prev=el.value;
+  el.innerHTML=html;
+  el.dataset.optsig=html;
+  if(prev!=null && [...el.options].some(o=>o.value===prev)) el.value=prev;
+}
 function buildCatSelects(){
-  $("#catFilter").innerHTML=`<option value="all">All categories</option>`+CATEGORIES.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join("");
-  const nc=$("#ncCat");if(nc)nc.innerHTML=CATEGORIES.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join("");
+  fillSelect($("#catFilter"),`<option value="all">All categories</option>`+CATEGORIES.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join(""));
+  fillSelect($("#ncCat"),CATEGORIES.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join(""));
 }
 function buildEditorSelects(){
-  $("#fAssignee").innerHTML=`<option value="">Unassigned</option>`+editorNames().map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
-  $("#asgFilter").innerHTML=`<option value="all">All editors</option><option value="__none">Unassigned</option>`+editorNames().map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  const opts=editorNames().map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  fillSelect($("#fAssignee"),`<option value="">Unassigned</option>`+opts);
+  fillSelect($("#asgFilter"),`<option value="all">All editors</option><option value="__none">Unassigned</option>`+opts);
 }
 function buildTabs(){
   const el=$("#tabs");
