@@ -543,6 +543,9 @@ textarea.inp{resize:vertical;min-height:64px}
 .cl-add{display:grid;grid-template-columns:1fr 92px 1fr 40px;gap:9px;align-items:end;background:var(--sage-tint);padding:13px;border-radius:11px;margin-bottom:14px}
 .cl-add .frow{margin:0}
 .cl-list{border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.cl-cd{min-width:118px}
+.cl-cd:not(.has){color:var(--muted);font-style:italic}
+.cd-seed-btn{font-size:12px;padding:5px 12px;margin-left:auto}
 .cl-item{display:grid;grid-template-columns:62px 1fr 1fr 36px;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line)}
 .cl-item:last-child{border-bottom:none}
 .cl-item:nth-child(even){background:var(--canvas)}
@@ -1170,6 +1173,52 @@ const PALETTE=["#6b7fa8","#6fa37f","#b97f8e","#c8893c","#7a6aa8","#4fa3a0","#b56
 let TYPES=DEFAULT_TYPES.map(t=>({...t}));
 let CATEGORIES=DEFAULT_CATS.map(c=>({...c}));
 let EDITORS_LIST=DEFAULT_EDITORS.map(e=>({...e}));
+
+/* ---- creative directors ----
+   Content planning: every client we post for has exactly one CD. A blank CD is
+   meaningful — it means we don't post for them — so it is never auto-filled. */
+const DEFAULT_DIRECTORS=["Daniel","Eddie","Montana","Sam"];
+let DIRECTORS=DEFAULT_DIRECTORS.slice();
+
+/* One-time seeding from Daniel's list. Matched at runtime against live clients
+   rather than hardcoded codes, because the codes in this file drift from
+   production. Each entry lists patterns tried in order against abbr then name;
+   anything that doesn't resolve is reported, never guessed. */
+const CD_SEED=[
+  ["Eddie",  ["APWR","all pro"]], ["Eddie", ["COAL","coalition"]],
+  ["Eddie",  ["EMTA","empire"]],  ["Eddie", ["JERR","dr. jerry","dr jerry"]],
+  ["Eddie",  ["WAKE","wake boat"]],["Eddie",["NEXT","next level"]],
+  ["Eddie",  ["SOHO","soholux"]], ["Eddie", ["DUNN","stephen dunn"]],
+  ["Eddie",  ["moriarty"]],       ["Eddie", ["919"]],
+  ["Sam",    ["CUOL","currin"]],  ["Sam",   ["DEAN","dean's","deans"]],
+  ["Sam",    ["EXBC","exeter"]],  ["Sam",   ["LTOL","land to listings"]],
+  ["Sam",    ["REVO","revolution"]],["Sam", ["JOHN","southern builder"]],
+  ["Sam",    ["VRCH","vr custom"]],["Sam",  ["ROSE","witherspoon"]],
+  ["Montana",["barbell"]],        ["Montana",["910"]],
+  ["Daniel", ["FITN","topsul"]],  ["Daniel",["BAPR","bannister"]],
+  ["Daniel", ["BEAC","beechwood"]],["Daniel",["capital"]],
+];
+function cdMatch(pats){
+  for(const raw of pats){
+    const q=String(raw).toLowerCase();
+    let hit=state.clients.find(c=>String(c.abbr||"").toLowerCase()===q);
+    if(hit) return hit;
+    hit=state.clients.find(c=>String(c.name||"").toLowerCase().includes(q));
+    if(hit) return hit;
+  }
+  return null;
+}
+async function seedDirectors(){
+  const done=[],missed=[],taken=new Set();
+  for(const [cd,pats] of CD_SEED){
+    const c=cdMatch(pats);
+    if(!c||taken.has(c.abbr)){ missed.push(pats[0]); continue; }
+    taken.add(c.abbr);
+    if(c.director!==cd){ await backend.upsertClient({...c,director:cd}); }
+    done.push(c.abbr+" -> "+cd);
+  }
+  return {done,missed};
+}
 let TYPE_MAP={},TYPE_ORDER={};
 function rebuildTypeMaps(){TYPE_MAP=Object.fromEntries(TYPES.map(t=>[t.id,t]));TYPE_ORDER=Object.fromEntries(TYPES.map((t,i)=>[t.id,i]));}
 rebuildTypeMaps();
@@ -1249,6 +1298,7 @@ const backend={
   async removeTask(id){state.tasks=state.tasks.filter(t=>t.id!==id);if(fb())await FBSDK.deleteDoc(FBSDK.doc(db,"tasks",id));else LS.set(LK_T,state.tasks);},
   async saveEditors(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","editors"),{list:EDITORS_LIST});else LS.set(LK_ED,EDITORS_LIST);},
   async saveCategories(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","categories"),{list:CATEGORIES});else LS.set(LK_CAT,CATEGORIES);},
+  async saveDirectors(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","directors"),{list:DIRECTORS});else LS.set("acc_directors_v1",DIRECTORS);},
   async saveTypes(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","types"),{list:TYPES});else LS.set(LK_TYP,TYPES);},
   async saveSecurity(){if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","security"),{list:SEC_HASH?[SEC_HASH]:[]});else LS.set(LK_SEC,SEC_HASH||"");},
   async saveSchedule(){const arr=Object.keys(SCHEDULE).filter(a=>SCHEDULE[a]&&SCHEDULE[a].length).map(a=>({abbr:a,days:SCHEDULE[a]}));if(fb())await FBSDK.setDoc(FBSDK.doc(db,"config","schedule"),{list:arr});else LS.set(LK_SCHED,arr);},
@@ -1516,7 +1566,7 @@ async function startData(){
   }catch(e){console.warn("seed skipped (rules or perms)",e);} }
   if(!isGuest()) onSnapshot(collection(db,"roles"),s=>{ROLES={};s.docs.forEach(d=>{ROLES[d.id.toLowerCase()]=(d.data()||{}).role||"contractor";});const nr=resolveRole(MYEMAIL);if(nr!==MYROLE){MYROLE=nr;applyRole();}refreshUI();},()=>{});
   onSnapshot(collection(db,"config"),s=>{
-    s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="skips")SKIPS=new Set(list||[]);else if(d.id==="documents")DOCS=list||[];else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
+    s.docs.forEach(d=>{const list=(d.data()||{}).list;if(!list)return;if(d.id==="editors")applyConfig({editors:list});else if(d.id==="categories")applyConfig({categories:list});else if(d.id==="types")applyConfig({types:list});else if(d.id==="security")SEC_HASH=list[0]||null;else if(d.id==="schedule")SCHEDULE=Object.fromEntries((list||[]).map(e=>[e.abbr,e.days||[]]));else if(d.id==="skips")SKIPS=new Set(list||[]);else if(d.id==="documents")DOCS=list||[];else if(d.id==="report")REPORT_RECIP=list||[];else if(d.id==="directors")DIRECTORS=(list&&list.length)?list:DEFAULT_DIRECTORS.slice();else if(d.id==="jarvis")JARVIS_ENDPOINT=(list&&list[0])||"";else if(d.id==="timezone")PROJECT_TZ=(list&&list[0])||"";else if(d.id==="admin")ADMIN_HASH=list[0]||null;else if(d.id==="appversion")handleVersionDoc(list);});
     rebuildConfigUI();ensureDailyDue();ensureFilmingType();ensureBraindumpType();setSyncStatus("ok");refreshUI();refreshLock();if(typeof jMaybeWeekly==="function")jMaybeWeekly();
   },()=>setSyncStatus("err"));
   onSnapshot(collection(db,"clients"),s=>{state.clients=s.docs.map(d=>d.data());setSyncStatus("ok");refreshUI();},()=>setSyncStatus("err"));
@@ -1560,7 +1610,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.14.2", APP_BUILD="2026-08-01";
+const APP_VERSION="2.15.0", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -3061,6 +3111,27 @@ async function saveEntry(){
 }
 
 /* ============ clients manager ============ */
+/* Shows exactly what it will change and what it could not match, then writes
+   only on confirm. A silent bulk write across every client is not something
+   anyone should discover after the fact. */
+async function runCdSeed(){
+  if(!canEdit()){toast("Managers and admins only");return;}
+  const plan=[],missed=[],taken=new Set();
+  for(const [cd,pats] of CD_SEED){
+    const c=cdMatch(pats);
+    if(!c||taken.has(c.abbr)){ missed.push(pats[0]); continue; }
+    taken.add(c.abbr);
+    if(c.director!==cd) plan.push({c,cd});
+  }
+  const lines=plan.map(x=>`  ${x.c.abbr}  ${x.c.name}  ->  ${x.cd}`).join("\n");
+  const warn=missed.length?`\n\nCouldn't match (set these by hand):\n  ${missed.join(", ")}`:"";
+  if(!plan.length){ alert("Nothing to change."+warn); return; }
+  if(!confirm(`Assign creative directors to ${plan.length} client(s)?\n\n${lines}${warn}`)) return;
+  for(const x of plan){ try{ await backend.upsertClient({...x.c,director:x.cd}); }catch(e){} }
+  renderClients(($("#cliSearch")&&$("#cliSearch").value)||"");
+  toast(plan.length+" assigned"+(missed.length?" · "+missed.length+" need setting by hand":""));
+}
+
 function renderClients(filter=""){
   const f=filter.toLowerCase();
   const list=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(c=>!f||c.name.toLowerCase().includes(f)||c.abbr.toLowerCase().includes(f));
@@ -3069,13 +3140,17 @@ function renderClients(filter=""){
       <input class="cl-ed abbr-ed" data-act="abbr" value="${esc(c.abbr)}" maxlength="6" spellcheck="false" title="Client code — edits move all its entries">
       <input class="cl-ed name-ed" data-act="name" value="${esc(c.name)}" spellcheck="false" title="Client name">
       <select data-act="cat">${CATEGORIES.map(o=>`<option value="${o.key}" ${c.cat===o.key?"selected":""}>${esc(o.label)}</option>`).join("")}</select>
+      <select data-act="cd" class="cl-cd ${c.director?"has":""}" title="Creative director - blank means we don't post for this client"><option value="">&mdash; no CD &mdash;</option>${DIRECTORS.map(d=>`<option value="${esc(d)}" ${c.director===d?"selected":""}>${esc(d)}</option>`).join("")}</select>
       <button class="ic del" data-act="rm" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
       <div class="cl-days"><span class="lbl">Posts on</span>${["S","M","T","W","T","F","S"].map((d,i)=>`<button type="button" class="dchip ${(SCHEDULE[c.abbr]||[]).includes(i)?"on":""}" data-day="${i}" title="${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][i]}">${d}</button>`).join("")}</div>
     </div>`).join("")||`<div class="empty">No matches.</div>`;
   const _sv=()=>($("#cliSearch")&&$("#cliSearch").value)||"";
+  const _seed=$("#cdSeed"); if(_seed) _seed.onclick=runCdSeed;
   $("#cliList").querySelectorAll(".cl-item").forEach(it=>{
     const abbr=it.dataset.abbr;
     it.querySelector('[data-act="cat"]').onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,cat:e.target.value});renderClients(_sv());}};
+    const cdSel=it.querySelector('[data-act="cd"]');
+    if(cdSel) cdSel.onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,director:e.target.value||""});renderClients(_sv());}};
     const nameInp=it.querySelector('[data-act="name"]');
     if(nameInp){nameInp.onkeydown=e=>{if(e.key==="Enter")nameInp.blur();};nameInp.onchange=async()=>{const c=clientByAbbr(abbr);if(!c)return;const v=nameInp.value.trim();if(!v){nameInp.value=c.name;return;}if(v===c.name)return;await backend.upsertClient({...c,name:v});renderClients(_sv());toast("Name updated");};}
     const abbrInp=it.querySelector('[data-act="abbr"]');
@@ -3140,6 +3215,7 @@ const TRASH=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 function settingsHTML(){
   return `<div class="settings">
     <div class="card set-card set-wide cl-card ${LS.get("acc_set_clients_open",false)?"open":""}">
+      <button type="button" class="btn cd-seed-btn" id="cdSeed" title="Apply the creative-director list to matching clients">Assign CDs</button>
       <button type="button" class="card-h cl-head" id="cliCollapse" aria-label="Toggle clients"><span>Clients <span class="set-count">${state.clients.length}</span></span><svg class="cl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="cl-body">
       <div class="cl-add">
