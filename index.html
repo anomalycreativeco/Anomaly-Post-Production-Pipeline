@@ -543,10 +543,24 @@ textarea.inp{resize:vertical;min-height:64px}
 .cl-add{display:grid;grid-template-columns:1fr 92px 1fr 40px;gap:9px;align-items:end;background:var(--sage-tint);padding:13px;border-radius:11px;margin-bottom:14px}
 .cl-add .frow{margin:0}
 .cl-list{border:1px solid var(--line);border-radius:11px;overflow:hidden}
-.cl-cd{min-width:118px}
+.cl-cd{min-width:0;width:100%}
 .cl-cd:not(.has){color:var(--muted);font-style:italic}
 .cd-seed-btn{font-size:12px;padding:5px 12px;margin-left:auto}
-.cl-item{display:grid;grid-template-columns:62px 1fr 1fr 36px;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line)}
+/* 5 columns: code, name, category, creative director, delete. Adding the CD
+   select without widening this pushed it into the 36px delete column and
+   bumped the trash icon onto its own row. */
+.cl-item{display:grid;grid-template-columns:62px minmax(0,1fr) minmax(0,1fr) 132px 36px;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line)}
+@media(max-width:1000px){
+  /* name spans the top row, the two selects sit under it */
+  .cl-item{grid-template-columns:62px minmax(0,1fr) 132px 36px}
+  .cl-item .name-ed{grid-column:2/-1}
+  .cl-item [data-act="cat"]{grid-column:2}
+}
+@media(max-width:640px){
+  .cl-item{grid-template-columns:62px minmax(0,1fr) 36px}
+  .cl-item .name-ed{grid-column:2/-1}
+  .cl-item [data-act="cat"],.cl-item .cl-cd{grid-column:2/-1}
+}
 .cl-item:last-child{border-bottom:none}
 .cl-item:nth-child(even){background:var(--canvas)}
 .cl-item .abbr{justify-self:start}
@@ -1610,7 +1624,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.15.0", APP_BUILD="2026-08-01";
+const APP_VERSION="2.15.1", APP_BUILD="2026-08-01";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
