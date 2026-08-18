@@ -1416,7 +1416,7 @@ function seedDemo(){
 
 function weekStart(d){const x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x;}
 function workingMonth(){const d=new Date();d.setDate(d.getDate()+3);return new Date(d.getFullYear(),d.getMonth(),1);}
-let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",calMonth:workingMonth(),calWeek:weekStart(new Date())};
+let state={clients:[],tasks:[],tab:"master",cat:"all",assignee:"all",sort:"urgency",search:"",view:"list",quick:null,locked:false,admin:false,calMode:"month",chipColor:"type",theme:"light",clientFilter:"",calMonth:workingMonth(),calWeek:weekStart(new Date())};
 const LK_SEC="acc_sec_hash", LK_UNLOCK="acc_unlock_at", LK_SCHED="acc_schedule", LK_REPORT="acc_report_recip", LK_JARVIS="acc_jarvis_api", LK_TZ="acc_project_tz", LK_VIEW="acc_view", LK_SKIPS="acc_skips", SALT="acc::";
 let SCHEDULE={}, REPORT_RECIP=[], JARVIS_ENDPOINT="";
 let SKIPS=new Set(); let pendingMiss=null;
@@ -1497,6 +1497,37 @@ async function adminRepublish(){
   try{await backend.savePublish(APP_VERSION,APPVER_NONCE||"");toast("Re-published v"+APP_VERSION);}catch(e){toast("Could not publish");}
 }
 
+
+/* ---- deep links from the Studio Hub ----
+   ?view=calendar&client=OAC&week=2026-08-17
+
+   The hub's "My clients" board is week-scoped, so a row click has to land on
+   that exact week filtered to that client. Landing on the current month
+   unfiltered would be worse than the two clicks it replaces.
+
+   Note the tab reset: ghosts only render on master/daily (see showGhosts), and
+   an "unplanned" count you click through to must actually show the empty slots
+   it counted - otherwise the number looks like a lie. */
+function applyDeepLink(){
+  let p; try{p=new URLSearchParams(location.search||"");}catch(e){return;}
+  const v=(p.get("view")||"").toLowerCase();
+  if(["list","calendar","dashboard","filming","delivery","braindump","home"].indexOf(v)>=0){
+    state.view=v; LS.set(LK_VIEW,v);
+    document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
+  }
+  const cli=(p.get("client")||"").trim().toUpperCase();
+  if(cli){ state.clientFilter=cli; state.tab="master"; }
+  const wk=(p.get("week")||"").trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(wk)){
+    const d=new Date(wk+"T00:00:00");
+    if(!isNaN(d.getTime())){ state.calMode="week"; state.calWeek=weekStart(d); }
+  }
+  const mo=(p.get("month")||"").trim();
+  if(/^\d{4}-\d{2}$/.test(mo)){
+    const d=new Date(mo+"-01T00:00:00");
+    if(!isNaN(d.getTime())){ state.calMode="month"; state.calMonth=new Date(d.getFullYear(),d.getMonth(),1); }
+  }
+}
 async function init(){
   PREVIEW_MODE=/[?&]preview=1/.test(location.search||"");
   state.theme=LS.get("acc_theme","light");
@@ -1506,6 +1537,7 @@ async function init(){
   setInterval(()=>{const el=document.getElementById("tzNow"); if(el) el.textContent=fmtTZNow();},1000);
   let savedView=LS.get(LK_VIEW,"home")||"home"; if(savedView==="documents"){savedView="calendar";LS.set(LK_VIEW,savedView);} state.view=savedView;
   document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===savedView));
+  applyDeepLink();
   try{state.admin=sessionStorage.getItem("acc_admin")==="1";}catch(e){}
   ME=LS.get("acc_me","")||""; if(ME&&LS.get("acc_personal",true))state.assignee=ME;
   if(USE_FB) await initFirebase();
@@ -1624,7 +1656,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.15.1", APP_BUILD="2026-08-01";
+const APP_VERSION="2.16.0", APP_BUILD="2026-08-18";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -1900,16 +1932,25 @@ async function createBatch(){
 function renderFilterNote(){
   const el=document.querySelector("#filterNote"); if(!el)return;
   const listy=(state.view==="list"||state.view==="calendar");
-  const filtered=state.assignee&&state.assignee!=="all";
-  if(!listy||!filtered){el.className="";el.innerHTML="";return;}
-  const who=state.assignee==="__none"?"unassigned tasks":`<b>${esc(state.assignee)}</b>&rsquo;s tasks only`;
-  const mine=state.assignee===ME?" (your personal view)":"";
+  const asgOn=state.assignee&&state.assignee!=="all";
+  const cliOn=!!state.clientFilter;
+  if(!listy||(!asgOn&&!cliOn)){el.className="";el.innerHTML="";return;}
+  const bits=[];
+  if(cliOn){const c=clientByAbbr(state.clientFilter);bits.push(`<b>${esc((c&&c.name)||state.clientFilter)}</b> only`);}
+  if(asgOn){
+    const who=state.assignee==="__none"?"unassigned tasks":`<b>${esc(state.assignee)}</b>&rsquo;s tasks`;
+    bits.push(who+(state.assignee===ME?" (your personal view)":""));
+  }
   el.className="on";
-  el.innerHTML=`<span>Showing ${who}${mine} &mdash; the rest of the team&rsquo;s work is hidden.</span>
-    <button class="fn-clear" id="fnClear">Show all editors</button>`;
+  el.innerHTML=`<span>Showing ${bits.join(" &middot; ")} &mdash; everything else is hidden.</span>`
+    +(cliOn?`<button class="fn-clear" id="fnClearCli">Show all clients</button>`:"")
+    +(asgOn?`<button class="fn-clear" id="fnClear">Show all editors</button>`:"");
   const b=document.querySelector("#fnClear");
   if(b)b.onclick=()=>{state.assignee="all";if(ME)LS.set("acc_personal",false);syncAsgSelect();render();};
+  const bc=document.querySelector("#fnClearCli");
+  if(bc)bc.onclick=()=>{state.clientFilter="";render();};
 }
+function passClient(t){return !state.clientFilter||t.clientAbbr===state.clientFilter;}
 function passAsg(t){if(state.assignee==="all")return true;if(state.assignee==="__none")return !t.assignee;return t.assignee===state.assignee;}
 function urg(t){return t.dueDate?new Date(t.dueDate).getTime():Infinity;}
 function sortTasks(arr){
@@ -2029,7 +2070,7 @@ function render(){
   document.body.classList.toggle("calview",state.view==="calendar");
   const board=$("#board"),statsEl=$("#stats");
   renderFilterNote();
-  let pool=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"&&passCat(t)&&passAsg(t)&&matchesSearch(t));
+  let pool=state.tasks.filter(t=>t.type!=="filming"&&t.type!=="braindump"&&passCat(t)&&passAsg(t)&&passClient(t)&&matchesSearch(t));
   if(state.tab==="__rev")pool=pool.filter(t=>t.revision);
   else if(state.tab!=="master")pool=pool.filter(t=>t.type===state.tab);
   const activeRaw=pool.filter(t=>!t.completed);
@@ -2181,7 +2222,7 @@ function calendarHTML(tasks){
   const ghostsFor=(ds)=>{
     if(!showGhosts||ds>horizon)return"";
     const wd=new Date(ds+"T00:00:00").getDay();
-    const due=state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(state.cat==="all"||c.cat===state.cat)&&!state.tasks.some(t=>t.clientAbbr===c.abbr&&t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump")&&!isSkipped(c.abbr,ds));
+    const due=state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(state.cat==="all"||c.cat===state.cat)&&(!state.clientFilter||c.abbr===state.clientFilter)&&!state.tasks.some(t=>t.clientAbbr===c.abbr&&t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump")&&!isSkipped(c.abbr,ds));
     if(ds<todayLocal) return ds<STATS_SINCE?"":due.map(c=>`<button class="cchip ghost missed" data-mclient="${esc(c.abbr)}" data-mdate="${ds}" title="Missed scheduled post for ${esc(c.name)} — check to mark done, drag to reschedule, or × to dismiss"><span class="ghost-check" data-mdone="1" title="Mark completed"></span><span class="ghost-mlbl">${esc(c.abbr)} · missed</span><span class="ghost-x" data-mx="1" title="Dismiss">×</span></button>`).join("");
     return due.map(c=>`<button class="cchip ghost" data-gdate="${ds}" data-gclient="${esc(c.abbr)}" title="Scheduled post for ${esc(c.name)} — click to add">${esc(c.abbr)} · +</button>`).join("");
   };
