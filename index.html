@@ -765,6 +765,11 @@ body.cal-grabbing,body.cal-grabbing *{cursor:grabbing!important;user-select:none
 .card.statbig .bignum{font-family:"Outfit";font-weight:700;font-size:52px;line-height:1;color:var(--sage-800)}
 .card.statbig .bigbar{width:128px;height:14px;border-radius:8px;background:var(--sage);opacity:.55}
 .card.statbig .bigsub{font-size:13px;color:var(--muted);font-weight:600}
+.card.statbig .otwrap{flex-direction:row;align-items:stretch;gap:0}
+.card.statbig .othalf{flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0}
+.card.statbig .othalf+.othalf{border-left:1px solid var(--line,#e4e7e6);padding-left:18px}
+.card.statbig .othalf .bignum{font-size:40px}
+.card.statbig .otdetail{font-size:11px;color:var(--muted);opacity:.8}
 .cal-cell[data-date]{cursor:pointer}
 .cal-cell[data-date]:hover{background:var(--sage-tint)}
 .cal-cell.other[data-date]:hover{background:var(--sage-tint)}
@@ -1656,7 +1661,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.16.0", APP_BUILD="2026-08-18";
+const APP_VERSION="2.16.1", APP_BUILD="2026-08-18";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2505,11 +2510,17 @@ function dashboardHTML(){
     </div></div>`;
   const linePts=completedLineData();
   const ot=onTimeRate();
+  const otWk=onTimeRateRange(ymd(weekStart(new Date())));
   const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const otCard=`<div class="card statbig"><div class="card-h">On-time rate · ${MN[new Date().getMonth()]}</div>
-    <div class="bigwrap">
-      ${ot.pct===null?`<div class="bigbar"></div>`:`<div class="bignum">${ot.pct}%</div>`}
-      <div class="bigsub">${ot.pct===null?"No posts logged yet this month":`${ot.onTime} of ${ot.total} logged posts on time`+(ot.missed?` · ${ot.missed} late or unposted`:"")}</div>
+  const otHalf=(o,label,empty)=>`<div class="othalf">
+      ${o.pct===null?`<div class="bigbar"></div>`:`<div class="bignum">${o.pct}%</div>`}
+      <div class="bigsub">${label}</div>
+      <div class="otdetail">${o.pct===null?empty:`${o.onTime} of ${o.total} on time`+(o.missed?` · ${o.missed} late`:"")}</div>
+    </div>`;
+  const otCard=`<div class="card statbig"><div class="card-h">On-time rate</div>
+    <div class="bigwrap otwrap">
+      ${otHalf(ot,MN[new Date().getMonth()],"No posts logged yet this month")}
+      ${otHalf(otWk,"This week","No posts logged yet this week")}
     </div></div>`;
   const upPts=upcomingLoadData();
   const catData=CATEGORIES.map(c=>({label:c.label,value:active.filter(t=>(clientByAbbr(t.clientAbbr)||{}).cat===c.key).length,color:c.color})).filter(d=>d.value>0);
@@ -2573,14 +2584,15 @@ function upcomingLoadData(){
   }
   return out;
 }
-function onTimeRate(){
+function onTimeRateRange(fromYmd){
   // Only looks at posts that were actually logged (a dated entry exists) on days
-  // already passed this month. On time = completed on or before its date; logged
-  // posts that went out late or never posted count against. Unmade days don't count.
-  const now=new Date(),y=now.getFullYear(),m=now.getMonth(),today=todayStr(),mStart=ymd(new Date(y,m,1));
+  // already passed in the window. On time = completed on or before its date;
+  // logged posts that went out late or never posted count against. Unmade days
+  // don't count. fromYmd..yesterday inclusive.
+  const today=todayStr();
   const isPost=t=>TYPE_MAP[t.type]&&TYPE_MAP[t.type].due&&t.type!=="filming"&&t.dueDate;
   const byKey={};
-  state.tasks.forEach(t=>{if(isPost(t)&&t.dueDate>=mStart&&t.dueDate<today){const k=t.clientAbbr+"|"+t.dueDate;(byKey[k]=byKey[k]||[]).push(t);}});
+  state.tasks.forEach(t=>{if(isPost(t)&&t.dueDate>=fromYmd&&t.dueDate<today){const k=t.clientAbbr+"|"+t.dueDate;(byKey[k]=byKey[k]||[]).push(t);}});
   const keys=Object.keys(byKey);
   if(!keys.length)return {pct:null,onTime:0,total:0,missed:0};
   let onTime=0;
@@ -2590,6 +2602,10 @@ function onTimeRate(){
   });
   const total=keys.length;
   return {pct:Math.round(onTime/total*100),onTime,total,missed:total-onTime};
+}
+function onTimeRate(){
+  const now=new Date();
+  return onTimeRateRange(ymd(new Date(now.getFullYear(),now.getMonth(),1)));
 }
 function miniBars(items){
   const W=1040,H=190,pad=30,n=items.length,iy=H-pad-30,max=Math.max(1,...items.map(d=>d.value));
