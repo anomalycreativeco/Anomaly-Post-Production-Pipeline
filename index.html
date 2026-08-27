@@ -1104,6 +1104,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
       <div class="frow" id="refRow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><div class="cprow"><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"><button type="button" class="copybtn" data-copy="fProject" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
       <div class="f2">
         <div class="frow"><label>Footage Folder <span class="opt">— optional</span></label><div class="cprow"><input type="url" class="inp" id="fFootage" placeholder="Link to footage"><button type="button" class="copybtn" data-copy="fFootage" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
+        <div class="frow"><label>Additional Footage <span class="opt">— optional, second location</span></label><div class="cprow"><input type="url" class="inp" id="fFootage2" placeholder="Link to more footage (different drive, card, or folder)"><button type="button" class="copybtn" data-copy="fFootage2" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
         <div class="frow" id="audioRow"><label>Audio File <span class="opt">— optional</span></label><div class="cprow"><input type="url" class="inp" id="fAudio" placeholder="Link to audio"><button type="button" class="copybtn" data-copy="fAudio" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
       </div>
       <div class="frow"><label>Notes <span class="opt">— optional</span></label><textarea class="inp" id="fNotes" placeholder="Anything the editor should know…"></textarea></div>
@@ -1647,7 +1648,7 @@ async function maybeRecur(t){
   if(t.type!=="filming"||!t.recur||t.recur==="none"||t.recurred)return;
   const next=addCadence(t.dueDate||todayStr(),t.recur);if(!next)return;
   await backend.upsertTask({...t,completed:true,completedAt:t.completedAt||Date.now(),recurred:true});
-  const child={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),dueDate:next,completed:false,completedAt:null,recurred:false,footageUrl:"",delivered:false,createdAt:Date.now()};
+  const child={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),dueDate:next,completed:false,completedAt:null,recurred:false,footageUrl:"",footageUrl2:"",delivered:false,createdAt:Date.now()};
   await backend.upsertTask(child);refreshUI();toast("Next footage run scheduled for "+next);
 }
 async function ensureDailyDue(){
@@ -1661,7 +1662,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.16.1", APP_BUILD="2026-08-18";
+const APP_VERSION="2.17.0", APP_BUILD="2026-08-22";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2173,7 +2174,7 @@ function missStatus(t,today){
   return "delivered";
  }catch(e){return null;}
 }
-function missCause(t){return (t.footageUrl&&String(t.footageUrl).trim())?"edit":"footage";}
+function missCause(t){return ((t.footageUrl&&String(t.footageUrl).trim())||(t.footageUrl2&&String(t.footageUrl2).trim()))?"edit":"footage";}
 function urgClass(t){const di=TYPE_MAP[t.type]?.due?dueInfo(t.dueDate):null;if(!di)return"u-none";if(di.days<0)return"u-over";if(di.days<=3)return"u-soon";if(di.days<=6)return"u-week";return"u-later";}
 function calChip(t){
   const c=clientByAbbr(t.clientAbbr)||{abbr:t.clientAbbr};
@@ -2189,7 +2190,7 @@ function calChip(t){
   if(isDeliv){colorCls="ctype delivered";style=`style="background:linear-gradient(90deg, ${hexToRgba(typeColor(t.type),.28)} 0 50%, var(--canvas) 50% 100%);${prio?"":`border-left:3px solid ${typeColor(t.type)}`}"`;}
   else{colorCls=byUrg?urgClass(t):"ctype";style=byUrg?"":`style="background:${hexToRgba(typeColor(t.type),.16)};${prio?"":`border-left:3px solid ${typeColor(t.type)}`}"`;}
   const drag=(!t.completed&&TYPE_MAP[t.type]&&TYPE_MAP[t.type].due)?'draggable="true"':"";
-  const ready=t.footageUrl&&String(t.footageUrl).trim()?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
+  const ready=((t.footageUrl&&String(t.footageUrl).trim())||(t.footageUrl2&&String(t.footageUrl2).trim()))?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
   const recur=(t.type==="filming"&&t.recur&&t.recur!=="none")?`<span class="cchip-recur" title="Recurring footage run">↻</span>`:"";
   const _ms=missStatus(t);
   return `<span class="cchip ${colorCls} ${prio?"prio":""} ${over&&!t.completed?"over":""} ${_ms==="missed"&&!t.completed?"missedchip":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((prio?"HIGH PRIORITY — ":"")+(t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
@@ -2715,6 +2716,7 @@ function rowHTML(t){
       <div class="links">
         ${link(t.projectUrl,"Reference / inspiration video",ICON.link)}
         ${link(t.footageUrl,"Footage folder",ICON.folder)}
+        ${t.footageUrl2?link(t.footageUrl2,"Additional footage — second location",ICON.folder):""}
         ${link(t.audioUrl,"Audio file",ICON.audio)}
       </div>
     </div>
@@ -2868,7 +2870,7 @@ function openAdd(prefillDate,prefillClient){
   else curType=tabType||"longform";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   if(prefillClient)$("#fClient").value=prefillClient;
-  $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value="";
+  $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fFootage2").value="";$("#fAudio").value="";$("#fNotes").value="";
   $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";const del=$("#delEntry");if(del){del.style.display="none";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
   setModalRO(false);
@@ -2879,7 +2881,7 @@ function openAddFilming(){openAdd();if(state.locked)return;curType="filming";bui
 async function dupFilming(id){
   if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
-  const copy={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,recurred:false,footageUrl:"",delivered:false,createdAt:Date.now()};
+  const copy={...t,id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,recurred:false,footageUrl:"",footageUrl2:"",delivered:false,createdAt:Date.now()};
   await backend.upsertTask(copy);refreshUI();toast("Footage run duplicated");
 }
 function bizDaysUntil(ds){
@@ -3093,7 +3095,7 @@ function convertSticky(id){
   $("#editId").value=id;$("#addTitle").textContent="Convert to deliverable";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
-  $("#fProject").value="";$("#fFootage").value="";$("#fAudio").value="";$("#fNotes").value=t.notes||"";
+  $("#fProject").value="";$("#fFootage").value="";$("#fFootage2").value="";$("#fAudio").value="";$("#fNotes").value=t.notes||"";
   const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";
   $("#addScrim").classList.add("open");
@@ -3113,7 +3115,7 @@ function filmingHTML(){
     const di=t.dueDate?dueInfo(t.dueDate):null;
     const pill=di?`<span class="due-pill ${di.cls}">${esc(di.label)}</span>`:`<span class="due-pill nodate">No date</span>`;
     const cad=(t.recur&&t.recur!=="none")?`<span class="film-cad">↻ ${RECUR_LABEL[t.recur]||t.recur}</span>`:`<span class="film-cad oneoff">One-off</span>`;
-    const star=t.footageUrl&&String(t.footageUrl).trim()?`<span class="film-star" title="Footage uploaded — ready to edit">★</span>`:"";
+    const star=((t.footageUrl&&String(t.footageUrl).trim())||(t.footageUrl2&&String(t.footageUrl2).trim()))?`<span class="film-star" title="Footage uploaded — ready to edit">★</span>`:"";
     return `<div class="film-row ${t.completed?"done":""} ${(!t.completed&&isUrg(t))?"urgent":""}" data-id="${t.id}">
       <label class="film-chk"><input type="checkbox" class="rowdone" data-done="${t.id}" ${t.completed?"checked":""} ${state.locked?"disabled":""}></label>
       <div class="film-main">
@@ -3149,7 +3151,7 @@ function autoGrowNotes(){
 }
 function setModalRO(ro){
   ro=!!ro; const scrim=$("#addScrim"); if(scrim)scrim.classList.toggle("ro",ro);
-  ["fClient","fName","fAssignee","fDue","fNotes","fProject","fFootage","fAudio"].forEach(fid=>{const el=$("#"+fid);if(!el)return;if(el.tagName==="SELECT")el.disabled=ro;else el.readOnly=ro;});
+  ["fClient","fName","fAssignee","fDue","fNotes","fProject","fFootage","fFootage2","fAudio"].forEach(fid=>{const el=$("#"+fid);if(!el)return;if(el.tagName==="SELECT")el.disabled=ro;else el.readOnly=ro;});
   ["fDelivered","fRecur","fRevision","fPriority"].forEach(fid=>{const el=$("#"+fid);if(el)el.disabled=ro;});
   (window.requestAnimationFrame||setTimeout)(autoGrowNotes,0);
 }
@@ -3159,7 +3161,7 @@ function openEdit(id){
   $("#editId").value=id;$("#addTitle").textContent=ro?"View entry":"Edit Entry";
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
-  $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
+  $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fFootage2").value=t.footageUrl2||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
   const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;const fp=$("#fPriority");if(fp)fp.checked=!!t.priority;
   const de=$("#dupEntry");if(de)de.style.display=ro?"none":"";const del=$("#delEntry");if(del){del.style.display=ro?"none":"";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
   setModalRO(ro);
@@ -3170,7 +3172,7 @@ async function saveEntry(){
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
-  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false,priority:$("#fPriority")?$("#fPriority").checked:false};
+  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),footageUrl2:$("#fFootage2").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false,priority:$("#fPriority")?$("#fPriority").checked:false};
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
@@ -3435,8 +3437,8 @@ function parseCSV(text){
   return rows.filter(r=>r.length>1||(r.length===1&&r[0].trim()!==""));
 }
 function exportCSV(){
-  const headers=["ID","Type","ClientAbbr","ClientName","ProjectName","Editor","DueDate","Status","ProjectURL","FootageURL","AudioURL","Notes"];
-  const rows=state.tasks.filter(t=>!t.completed).map(t=>{const c=clientByAbbr(t.clientAbbr)||{};return [t.id,(TYPE_MAP[t.type]?.label||t.type),t.clientAbbr,c.name||"",t.projectName||"",t.assignee||"",t.dueDate||"","Active",t.projectUrl||"",t.footageUrl||"",t.audioUrl||"",t.notes||""];});
+  const headers=["ID","Type","ClientAbbr","ClientName","ProjectName","Editor","DueDate","Status","ProjectURL","FootageURL","FootageURL2","AudioURL","Notes"];
+  const rows=state.tasks.filter(t=>!t.completed).map(t=>{const c=clientByAbbr(t.clientAbbr)||{};return [t.id,(TYPE_MAP[t.type]?.label||t.type),t.clientAbbr,c.name||"",t.projectName||"",t.assignee||"",t.dueDate||"","Active",t.projectUrl||"",t.footageUrl||"",t.footageUrl2||"",t.audioUrl||"",t.notes||""];});
   const blob=new Blob([toCSV(headers,rows)],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`anomaly-pipeline-${todayStr()}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
@@ -3448,7 +3450,7 @@ async function importCSV(file){
   let text; try{text=await file.text();}catch(e){toast("Couldn't read file");return;}
   const rows=parseCSV(text); if(rows.length<2){toast("Nothing to import");return;}
   const head=rows[0].map(h=>h.trim().toLowerCase()), idx=n=>head.indexOf(n);
-  const col={id:idx("id"),type:idx("type"),abbr:idx("clientabbr")>=0?idx("clientabbr"):idx("client"),name:idx("clientname"),proj:idx("projectname"),ed:idx("editor"),due:idx("duedate"),status:idx("status"),purl:idx("projecturl"),furl:idx("footageurl"),aurl:idx("audiourl"),notes:idx("notes")};
+  const col={id:idx("id"),type:idx("type"),abbr:idx("clientabbr")>=0?idx("clientabbr"):idx("client"),name:idx("clientname"),proj:idx("projectname"),ed:idx("editor"),due:idx("duedate"),status:idx("status"),purl:idx("projecturl"),furl:idx("footageurl"),furl2:idx("footageurl2"),aurl:idx("audiourl"),notes:idx("notes")};
   if(col.abbr<0){toast("CSV needs a ClientAbbr column");return;}
   let added=0,updated=0,skipped=0;
   for(let r=1;r<rows.length;r++){
@@ -3463,7 +3465,7 @@ async function importCSV(file){
     const completed=/complete|done/i.test(g(col.status));
     const id=g(col.id)||("t"+Date.now()+Math.random().toString(36).slice(2,6));
     const existing=state.tasks.find(x=>x.id===id);
-    await backend.upsertTask({id,type:typeId,clientAbbr:abbr,projectName:g(col.proj),assignee:g(col.ed),dueDate:due,projectUrl:g(col.purl),footageUrl:g(col.furl),audioUrl:g(col.aurl),notes:g(col.notes),completed,completedAt:completed?((existing&&existing.completedAt)||Date.now()):null,createdAt:existing?existing.createdAt:Date.now()});
+    await backend.upsertTask({id,type:typeId,clientAbbr:abbr,projectName:g(col.proj),assignee:g(col.ed),dueDate:due,projectUrl:g(col.purl),footageUrl:g(col.furl),footageUrl2:g(col.furl2),audioUrl:g(col.aurl),notes:g(col.notes),completed,completedAt:completed?((existing&&existing.completedAt)||Date.now()):null,createdAt:existing?existing.createdAt:Date.now()});
     existing?updated++:added++;
   }
   render();
