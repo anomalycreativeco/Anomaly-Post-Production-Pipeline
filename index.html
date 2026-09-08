@@ -793,6 +793,9 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .chk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;color:var(--ink-2);cursor:pointer}
 .chk input{width:16px;height:16px;cursor:pointer}
 .cchip.ghost{background:transparent;border:1px dashed var(--line-2);color:var(--muted);font-weight:600}
+.cchip.plan{background:transparent;border:1px dashed var(--sage-800);color:var(--sage-800);font-weight:600;cursor:pointer}
+.cchip.plan:hover{background:var(--sage-tint)}
+.cchip.plan.plan-done{opacity:.5;text-decoration:line-through}
 .cchip.ghost:hover{border-color:var(--sage);color:var(--sage-800);background:var(--sage-tint)}
 .cchip.ghost.missed{background:#7a1f1f;border:1px solid #7a1f1f;color:#fff;font-weight:700;cursor:grab;touch-action:none;display:inline-flex;align-items:center;gap:5px}
 .cchip.ghost.missed:hover{background:#641a1a;border-color:#641a1a;color:#fff}
@@ -1662,7 +1665,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.17.0", APP_BUILD="2026-08-22";
+const APP_VERSION="2.18.0", APP_BUILD="2026-09-08";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2216,9 +2219,63 @@ function calLegend(){
     title="Edit type";
     items=TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>[tp.color,tp.label]);
   }
-  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span><span class="lg"><span class="sw swprio"></span>High priority</span></div>`;
+  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span><span class="lg"><span class="sw" style="background:transparent;border:1px dashed var(--sage-800)"></span>RCH planner (read-only)</span><span class="lg"><span class="sw swprio"></span>High priority</span></div>`;
 }
 function nodateStrip(nodate){return nodate.length?`<div class="cal-nodate"><span class="lbl">No date / dailies</span>${nodate.map(calChip).join("")}</div>`:"";}
+
+/* ---- RCH Content Planner mirror ----------------------------------------
+   The client-facing planner (project anomaly-rch-planner) is deliberately
+   public — its share link is the bare URL — so the calendar reads it
+   directly over unauthenticated REST. No SDK, no sync job, nothing copied:
+   these chips are a live view of the planner and are read-only here by
+   design; clicking one opens the planner, which owns the data.
+
+   Filter rationale (from the planner's own code): kind==='keydate' rows are
+   client events, not content; due is "YYYY-MM-DD" or "" and only dated rows
+   mirror; the planner auto-writes a blank row into any month someone merely
+   opens, so rows with no idea AND no address are placeholders, not posts. */
+const RCH_PLANNER_URL="https://anomalycreativeco.github.io/Anomaly-x-RCH---Content-Planning/";
+const RCH_PLAN={}; // "YYYY-MM" -> {state:"loading"|"ok"|"error", byDate:{ds:[row]}}
+function rchPlanClient(){
+  return state.clients.find(c=>c.abbr==="RCH"||/raleigh\s*custom/i.test(c.name||""))||null;
+}
+async function rchPlanFetch(mk){
+  if(RCH_PLAN[mk])return;
+  RCH_PLAN[mk]={state:"loading",byDate:{}};
+  try{
+    const base="https://firestore.googleapis.com/v1/projects/anomaly-rch-planner/databases/(default)/documents/months/"+mk+"/rows?pageSize=300";
+    const byDate={}; let next=null,guard=0;
+    do{
+      const r=await fetch(base+(next?"&pageToken="+encodeURIComponent(next):""));
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const d=await r.json();
+      (d.documents||[]).forEach(doc=>{
+        const f=doc.fields||{}, sv=k=>((f[k]||{}).stringValue||"");
+        const row={due:sv("due"),idea:sv("idea"),address:sv("address"),notes:sv("notes"),done:!!((f.done||{}).booleanValue)};
+        if(sv("kind")==="keydate")return;
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(row.due))return;
+        if(!(row.idea.trim()||row.address.trim()))return;
+        (byDate[row.due]=byDate[row.due]||[]).push(row);
+      });
+      next=d.nextPageToken||null;guard++;
+    }while(next&&guard<10); // pageToken loop: a dropped token must not truncate silently
+    RCH_PLAN[mk]={state:"ok",byDate};
+  }catch(e){ RCH_PLAN[mk]={state:"error",byDate:{}}; }
+  if(state.view==="calendar")render();
+}
+function rchPlanFor(ds){
+  if(state.search.trim())return""; // same rule as ghosts: search hides generated chips
+  const mk=ds.slice(0,7);
+  if(!RCH_PLAN[mk]){rchPlanFetch(mk);return"";}
+  const cli=rchPlanClient(), abbr=cli?cli.abbr:"RCH";
+  if(state.clientFilter&&state.clientFilter!==abbr)return"";
+  if(cli&&state.cat!=="all"&&cli.cat!==state.cat)return"";
+  return (RCH_PLAN[mk].byDate[ds]||[]).map(r=>{
+    const label=(r.idea||r.address).trim();
+    const tip="RCH Content Planner: "+(r.idea||r.address)+(r.notes?" — "+r.notes:"")+(r.done?" (done)":"")+" — read-only here; click to open the planner";
+    return `<button class="cchip plan ${r.done?"plan-done":""}" data-planner="1" title="${esc(tip)}">${r.done?"✓ ":""}RCH · ${esc(label)}</button>`;
+  }).join("");
+}
 function calendarHTML(tasks){
   const dated={}, nodate=[];
   tasks.forEach(t=>{const tp=TYPE_MAP[t.type];if(tp&&tp.due&&t.dueDate)(dated[t.dueDate]=dated[t.dueDate]||[]).push(t);else nodate.push(t);});
@@ -2241,7 +2298,7 @@ function calendarHTML(tasks){
     for(let i=0;i<7;i++){
       const d=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+i);
       const ds=ymd(d), isToday=ds===todayLocal;
-      const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds);
+      const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds)+rchPlanFor(ds);
       cells+=`<div class="cal-cell week ${isToday?"today":""}" data-date="${ds}"><span class="cal-daylabel">${dow[d.getDay()]} <b>${d.getDate()}</b></span>${chips}</div>`;
     }
     return `<div class="cal cal-week">${calHeader(title)}${calLegend()}<div class="cal-grid week">${cells}</div>${nodateStrip(nodate)}</div>`;
@@ -2257,7 +2314,7 @@ function calendarHTML(tasks){
     // ghosts render on adjacent-month days too — the leading/trailing week of a
     // month view is still a real working week, and hiding its unscheduled slots
     // made this week look fully booked whenever you were viewing next month.
-    const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds);
+    const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds)+rchPlanFor(ds);
     cells+=`<div class="cal-cell ${other?"other":""} ${isToday?"today":""}" data-date="${ds}"><span class="cal-num">${d.getDate()}</span>${chips}</div>`;
   }
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
@@ -2320,6 +2377,9 @@ function initCalDnD(){
   });
 }
 function bindCalendar(scope){
+  scope.querySelectorAll("[data-planner]").forEach(b=>{
+    b.addEventListener("click",e=>{e.stopPropagation();window.open(RCH_PLANNER_URL,"_blank","noopener");});
+  });
   scope.querySelectorAll(".cchip.ghost[data-gdate]").forEach(g=>{
     g.addEventListener("click",e=>{e.stopPropagation();openAdd(g.dataset.gdate,g.dataset.gclient);});
   });
