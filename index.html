@@ -793,9 +793,19 @@ body.locked .cchip[draggable="true"]{cursor:pointer}
 .chk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;color:var(--ink-2);cursor:pointer}
 .chk input{width:16px;height:16px;cursor:pointer}
 .cchip.ghost{background:transparent;border:1px dashed var(--line-2);color:var(--muted);font-weight:600}
-.cchip.plan{background:transparent;border:1px dashed var(--sage-800);color:var(--sage-800);font-weight:600;cursor:pointer}
+.cchip.plan{background:transparent;border:1px dashed var(--sage-800);color:var(--sage-800);font-weight:600;cursor:grab;
+  display:inline-flex;align-items:center;gap:5px;touch-action:none}
 .cchip.plan:hover{background:var(--sage-tint)}
-.cchip.plan.plan-done{opacity:.5;text-decoration:line-through}
+.cchip.plan.plan-done{opacity:.55;text-decoration:line-through;cursor:pointer}
+.cchip.plan .plan-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-tick{width:13px;height:13px;border-radius:50%;border:2px solid var(--sage-800);background:transparent;
+  flex:0 0 auto;position:relative;cursor:pointer;display:inline-block}
+.plan-tick:hover{background:var(--sage-tint)}
+.plan-tick.on{background:var(--sage-800)}
+.plan-tick.on::after{content:"";position:absolute;left:3px;top:0;width:3px;height:7px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+body.locked .plan-tick{display:none}
+body.locked .cchip.plan{cursor:pointer}
 .cchip.ghost:hover{border-color:var(--sage);color:var(--sage-800);background:var(--sage-tint)}
 .cchip.ghost.missed{background:#7a1f1f;border:1px solid #7a1f1f;color:#fff;font-weight:700;cursor:grab;touch-action:none;display:inline-flex;align-items:center;gap:5px}
 .cchip.ghost.missed:hover{background:#641a1a;border-color:#641a1a;color:#fff}
@@ -1665,7 +1675,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.18.0", APP_BUILD="2026-09-08";
+const APP_VERSION="2.19.0", APP_BUILD="2026-09-10";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2251,7 +2261,9 @@ async function rchPlanFetch(mk){
       const d=await r.json();
       (d.documents||[]).forEach(doc=>{
         const f=doc.fields||{}, sv=k=>((f[k]||{}).stringValue||"");
-        const row={due:sv("due"),idea:sv("idea"),address:sv("address"),notes:sv("notes"),done:!!((f.done||{}).booleanValue)};
+        const row={id:String(doc.name||"").split("/").pop(),due:sv("due"),idea:sv("idea"),address:sv("address"),
+          video:sv("video"),notes:sv("notes"),done:!!((f.done||{}).booleanValue),
+          created:((f.createdAt||{}).timestampValue||null)};
         if(sv("kind")==="keydate")return;
         if(!/^\d{4}-\d{2}-\d{2}$/.test(row.due))return;
         if(!(row.idea.trim()||row.address.trim()))return;
@@ -2263,6 +2275,68 @@ async function rchPlanFetch(mk){
   }catch(e){ RCH_PLAN[mk]={state:"error",byDate:{}}; }
   if(state.view==="calendar")render();
 }
+const RCH_FS="https://firestore.googleapis.com/v1/projects/anomaly-rch-planner/databases/(default)/documents";
+async function rchPlanWrite(url,opts){
+  const r=await fetch(url,Object.assign({headers:{"Content-Type":"application/json"}},opts));
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  try{return await r.json();}catch(e){return null;}
+}
+function rchPlanFind(mk,id){
+  const b=RCH_PLAN[mk]; if(!b)return {};
+  for(const ds of Object.keys(b.byDate)){
+    const row=b.byDate[ds].find(x=>x.id===id);
+    if(row)return {row,ds,bucket:b};
+  }
+  return {};
+}
+/* Drag write-back. Same month = one field patch. Cross-month follows the
+   planner's own move flow — create in the target month, then delete the
+   source, because rows live per-month and the doc id changes. Create-first
+   so a failure duplicates rather than loses; any error refetches and toasts.
+   These writes ride outside the pipeline's undo history — Cmd+Z cannot
+   un-edit another product's database. */
+async function rchPlanMove(fromMk,id,nd){
+  const {row,ds:fromDs,bucket}=rchPlanFind(fromMk,id);
+  if(!row||fromDs===nd)return;
+  const toMk=nd.slice(0,7);
+  bucket.byDate[fromDs]=bucket.byDate[fromDs].filter(x=>x.id!==id);
+  const moved={...row,due:nd};
+  if(toMk===fromMk)(bucket.byDate[nd]=bucket.byDate[nd]||[]).push(moved);
+  else if(RCH_PLAN[toMk]&&RCH_PLAN[toMk].state==="ok")(RCH_PLAN[toMk].byDate[nd]=RCH_PLAN[toMk].byDate[nd]||[]).push(moved);
+  render();
+  try{
+    if(toMk===fromMk){
+      await rchPlanWrite(RCH_FS+"/months/"+fromMk+"/rows/"+id+"?updateMask.fieldPaths=due",
+        {method:"PATCH",body:JSON.stringify({fields:{due:{stringValue:nd}}})});
+    }else{
+      const body={fields:{due:{stringValue:nd},address:{stringValue:row.address||""},idea:{stringValue:row.idea||""},
+        video:{stringValue:row.video||""},notes:{stringValue:row.notes||""},done:{booleanValue:!!row.done},
+        order:{doubleValue:Date.now()}}};
+      if(row.created)body.fields.createdAt={timestampValue:row.created};
+      const made=await rchPlanWrite(RCH_FS+"/months/"+toMk+"/rows",{method:"POST",body:JSON.stringify(body)});
+      if(made&&made.name)moved.id=String(made.name).split("/").pop();
+      await rchPlanWrite(RCH_FS+"/months/"+fromMk+"/rows/"+id,{method:"DELETE"});
+    }
+    toast("RCH planner updated — "+nd);
+  }catch(err){
+    toast("Couldn't update the RCH planner — reloading");
+    delete RCH_PLAN[fromMk]; if(RCH_PLAN[toMk])delete RCH_PLAN[toMk];
+    render();
+  }
+}
+async function rchPlanToggleDone(mk,id){
+  if(state.locked)return;
+  const {row}=rchPlanFind(mk,id);
+  if(!row)return;
+  row.done=!row.done;render();
+  try{
+    await rchPlanWrite(RCH_FS+"/months/"+mk+"/rows/"+id+"?updateMask.fieldPaths=done",
+      {method:"PATCH",body:JSON.stringify({fields:{done:{booleanValue:row.done}}})});
+  }catch(e){
+    toast("Couldn't update the RCH planner — reloading");
+    delete RCH_PLAN[mk];render();
+  }
+}
 function rchPlanFor(ds){
   if(state.search.trim())return""; // same rule as ghosts: search hides generated chips
   const mk=ds.slice(0,7);
@@ -2271,9 +2345,10 @@ function rchPlanFor(ds){
   if(state.clientFilter&&state.clientFilter!==abbr)return"";
   if(cli&&state.cat!=="all"&&cli.cat!==state.cat)return"";
   return (RCH_PLAN[mk].byDate[ds]||[]).map(r=>{
-    const label=(r.idea||r.address).trim();
-    const tip="RCH Content Planner: "+(r.idea||r.address)+(r.notes?" — "+r.notes:"")+(r.done?" (done)":"")+" — read-only here; click to open the planner";
-    return `<button class="cchip plan ${r.done?"plan-done":""}" data-planner="1" title="${esc(tip)}">${r.done?"✓ ":""}RCH · ${esc(label)}</button>`;
+    const label=[r.address.trim(),r.idea.trim()].filter(Boolean).join(" - ");
+    const tip="RCH Content Planner: "+label+(r.notes?" — "+r.notes:"")+(r.done?" (done)":"")
+      +" — drag to reschedule or tick to mark done (both update the planner); click to open it";
+    return `<button class="cchip plan ${r.done?"plan-done":""}" data-planner="1" data-planmk="${mk}" data-planid="${esc(r.id)}" title="${esc(tip)}"><span class="plan-tick ${r.done?"on":""}" data-plantick="1" title="${r.done?"Done in the planner — click to reopen":"Mark done in the planner"}"></span><span class="plan-lbl">RCH · ${esc(label)}</span></button>`;
   }).join("");
 }
 function calendarHTML(tasks){
@@ -2332,6 +2407,12 @@ function calDragStartMiss(b,e){
   if(state.locked)return;
   calDrag={miss:{abbr:b.dataset.mclient,fromDate:b.dataset.mdate},x0:e.clientX,y0:e.clientY,el:b,ghost:null,active:false,over:null};
 }
+function calDragStartPlan(b,e){
+  if(state.locked)return;
+  const {row}=rchPlanFind(b.dataset.planmk,b.dataset.planid);
+  if(!row||row.done)return; // done rows don't reschedule, same as completed tasks
+  calDrag={plan:{mk:b.dataset.planmk,id:b.dataset.planid},x0:e.clientX,y0:e.clientY,el:b,ghost:null,active:false,over:null};
+}
 function initCalDnD(){
   if(window.__calDnD)return;window.__calDnD=true;
   window.addEventListener("pointermove",e=>{
@@ -2368,6 +2449,10 @@ function initCalDnD(){
       await reassignMiss(d.miss.abbr,d.miss.fromDate,ndm);
       return;
     }
+    if(d.plan){
+      await rchPlanMove(d.plan.mk,d.plan.id,cell.dataset.date);
+      return;
+    }
     const nd=cell.dataset.date,t=state.tasks.find(x=>x.id===d.id);
     if(!t||t.dueDate===nd)return;
     const _want=nd,_tid=t.id;
@@ -2378,7 +2463,13 @@ function initCalDnD(){
 }
 function bindCalendar(scope){
   scope.querySelectorAll("[data-planner]").forEach(b=>{
-    b.addEventListener("click",e=>{e.stopPropagation();window.open(RCH_PLANNER_URL,"_blank","noopener");});
+    b.addEventListener("pointerdown",e=>{if(e.target.closest(".plan-tick"))return;if(e.pointerType==="mouse"&&e.button!==0)return;calDragStartPlan(b,e);});
+    b.addEventListener("click",e=>{
+      e.stopPropagation();
+      if(calDragged){calDragged=false;return;}
+      if(e.target.closest(".plan-tick")){rchPlanToggleDone(b.dataset.planmk,b.dataset.planid);return;}
+      window.open(RCH_PLANNER_URL,"_blank","noopener");
+    });
   });
   scope.querySelectorAll(".cchip.ghost[data-gdate]").forEach(g=>{
     g.addEventListener("click",e=>{e.stopPropagation();openAdd(g.dataset.gdate,g.dataset.gclient);});
