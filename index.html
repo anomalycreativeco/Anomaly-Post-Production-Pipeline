@@ -540,7 +540,7 @@ textarea.inp{resize:vertical;min-height:64px}
 .hint{font-size:12px;color:var(--muted);margin-top:5px}
 .hidden{display:none!important}
 
-.cl-add{display:grid;grid-template-columns:1fr 92px 1fr 40px;gap:9px;align-items:end;background:var(--sage-tint);padding:13px;border-radius:11px;margin-bottom:14px}
+.cl-add{display:grid;grid-template-columns:1fr 92px 1fr 128px 40px;gap:9px;align-items:end;background:var(--sage-tint);padding:13px;border-radius:11px;margin-bottom:14px}
 .cl-add .frow{margin:0}
 .cl-list{border:1px solid var(--line);border-radius:11px;overflow:hidden}
 .cl-cd{min-width:0;width:100%}
@@ -571,6 +571,9 @@ textarea.inp{resize:vertical;min-height:64px}
 .cl-ed:focus{outline:none;border-color:var(--sage);background:var(--paper);box-shadow:0 0 0 2px var(--sage-soft)}
 .cl-item .abbr-ed{justify-self:start;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--sage-800)}
 .cl-item .name-ed{font-weight:600;font-size:14px}
+.captag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--sage-tint);color:var(--sage-800);margin:0 6px 4px 0}
+.cl-days .clStarted{margin-left:14px}
+.cl-start{border:1px solid var(--line-2);border-radius:7px;padding:3px 6px;font-size:11.5px;background:var(--paper);color:var(--ink);font-family:inherit}
 .search{position:relative;margin-bottom:12px}
 .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
 .search input{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:9px 12px 9px 34px}
@@ -1113,6 +1116,7 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
       <div class="frow" id="deliverRow"><label>Delivery</label><label class="chk"><input type="checkbox" id="fDelivered"> Delivered to Slack — production done, not yet posted</label></div>
       <div class="frow" id="revRow"><label>Revision</label><label class="chk"><input type="checkbox" id="fRevision"> Needs revision — flagged for rework</label></div>
       <div class="frow" id="prioRow"><label>Priority</label><label class="chk"><input type="checkbox" id="fPriority"> High priority — gold bar on the calendar</label></div>
+      <div class="frow" id="capRow"><label>Captions</label><label class="chk"><input type="checkbox" id="fCaptions"> Add Dynamic Captions?</label></div>
       <div class="frow" id="recurRow"><label>Recurring</label><select class="inp" id="fRecur"><option value="none">One-off</option><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option><option value="bimonthly">Every 2 months</option><option value="quarterly">Quarterly</option></select><div class="hint">When completed, the next run is auto-scheduled.</div></div>
       <div class="frow" id="refRow"><label>Reference / Inspiration Video <span class="opt">— optional</span></label><div class="cprow"><input type="url" class="inp" id="fProject" placeholder="https://next.frame.io/...  ·  reference or inspo link"><button type="button" class="copybtn" data-copy="fProject" title="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
       <div class="f2">
@@ -1675,7 +1679,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.19.0", APP_BUILD="2026-09-10";
+const APP_VERSION="2.20.0", APP_BUILD="2026-09-11";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2206,7 +2210,7 @@ function calChip(t){
   const ready=((t.footageUrl&&String(t.footageUrl).trim())||(t.footageUrl2&&String(t.footageUrl2).trim()))?`<span class="cchip-ready" title="Footage uploaded — ready to edit">★</span>`:"";
   const recur=(t.type==="filming"&&t.recur&&t.recur!=="none")?`<span class="cchip-recur" title="Recurring footage run">↻</span>`:"";
   const _ms=missStatus(t);
-  return `<span class="cchip ${colorCls} ${prio?"prio":""} ${over&&!t.completed?"over":""} ${_ms==="missed"&&!t.completed?"missedchip":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((prio?"HIGH PRIORITY — ":"")+(t.footageUrl?"★ ready to edit — ":"")+label)}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
+  return `<span class="cchip ${colorCls} ${prio?"prio":""} ${over&&!t.completed?"over":""} ${_ms==="missed"&&!t.completed?"missedchip":""} ${t.completed?"done":""} ${t.revision?"revision":""}" ${style} ${drag} data-id="${t.id}" title="${esc((prio?"HIGH PRIORITY — ":"")+(t.footageUrl?"★ ready to edit — ":"")+label+(t.captions?" — CC dynamic captions":""))}"><span class="cchip-tick ${t.completed?"on":isDeliv?"half":""}" data-stage="${t.id}" title="${esc(t.completed?"Posted — click to reopen":isDeliv?"Delivered — click to mark posted":(t.type==="daily"||t.type==="longform")?"In production — click to mark delivered":"Click to mark posted")}"></span>${recur}${ready}<span class="cchip-lbl">${esc(label)}</span><button class="cchip-rev ${t.revision?"on":""}" data-rev="${t.id}" title="${t.revision?"Clear revision":"Mark needs revision"}">⟲</button></span>`;
 }
 function calHeader(title){
   return `<div class="cal-head">
@@ -2360,7 +2364,7 @@ function calendarHTML(tasks){
   const ghostsFor=(ds)=>{
     if(!showGhosts||ds>horizon)return"";
     const wd=new Date(ds+"T00:00:00").getDay();
-    const due=state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(state.cat==="all"||c.cat===state.cat)&&(!state.clientFilter||c.abbr===state.clientFilter)&&!state.tasks.some(t=>t.clientAbbr===c.abbr&&t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump")&&!isSkipped(c.abbr,ds));
+    const due=state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(!c.startDate||ds>=c.startDate)&&(state.cat==="all"||c.cat===state.cat)&&(!state.clientFilter||c.abbr===state.clientFilter)&&!state.tasks.some(t=>t.clientAbbr===c.abbr&&t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump")&&!isSkipped(c.abbr,ds));
     if(ds<todayLocal) return ds<STATS_SINCE?"":due.map(c=>`<button class="cchip ghost missed" data-mclient="${esc(c.abbr)}" data-mdate="${ds}" title="Missed scheduled post for ${esc(c.name)} — check to mark done, drag to reschedule, or × to dismiss"><span class="ghost-check" data-mdone="1" title="Mark completed"></span><span class="ghost-mlbl">${esc(c.abbr)} · missed</span><span class="ghost-x" data-mx="1" title="Dismiss">×</span></button>`).join("");
     return due.map(c=>`<button class="cchip ghost" data-gdate="${ds}" data-gclient="${esc(c.abbr)}" title="Scheduled post for ${esc(c.name)} — click to add">${esc(c.abbr)} · +</button>`).join("");
   };
@@ -2533,7 +2537,7 @@ function perClientStats(){
     const open=posts.filter(t=>!t.completed).length;
     const sched=SCHEDULE[c.abbr]||[];
     let scheduled30=0,delivered30=0;const missedDates=[];
-    if(sched.length)days.forEach(({ds,wd})=>{if(sched.includes(wd)){scheduled30++;if(posts.some(t=>t.dueDate===ds&&t.completed))delivered30++;else missedDates.push(ds);}});
+    if(sched.length)days.forEach(({ds,wd})=>{if(c.startDate&&ds<c.startDate)return;if(sched.includes(wd)){scheduled30++;if(posts.some(t=>t.dueDate===ds&&t.completed))delivered30++;else missedDates.push(ds);}});
     const missed30=scheduled30-delivered30;
     const missRate=scheduled30?missed30/scheduled30:null;
     const tc={};posts.forEach(t=>{tc[t.type]=(tc[t.type]||0)+1;});const typeData=Object.keys(tc).map(t=>({label:(TYPE_MAP[t]||{}).label||t,value:tc[t],color:(TYPE_MAP[t]||{}).color||"#c4c9c7"}));
@@ -2861,7 +2865,7 @@ function rowHTML(t){
     <span class="type-cell"><span class="tbadge"><span class="cdot" style="background:${typeColor(t.type)}"></span>${esc(tp.label)}</span></span>
     ${dueCell}
     <div style="min-width:0">
-      ${t.revision?`<span class="revtag">⟲ Needs revision</span>`:""}
+      ${t.revision?`<span class="revtag">⟲ Needs revision</span>`:""}${t.captions?`<span class="captag" title="Add dynamic captions">CC · Dynamic captions</span>`:""}
       ${(t.assignee||t.projectName)?`<div class="nhead">${assigneeAvatar(t)}${t.projectName?`<span class="ptitle">${esc(t.projectName)}</span>`:""}</div>`:""}
       <div class="noteswrap"><div class="notes ${t.notes?"":"empty"}">${t.notes?esc(t.notes):"No notes"}</div>${t.notes?`<button type="button" class="notes-toggle" hidden>more</button>`:""}</div>
       <div class="links">
@@ -2910,7 +2914,7 @@ function isSkipped(abbr,ds){return SKIPS.has(skipKey(abbr,ds));}
 function unassignedTodayCount(){
   const ds=todayStr(), wd=new Date(ds+"T00:00:00").getDay();
   const existing=state.tasks.filter(t=>t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump");
-  return state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds)).length;
+  return state.clients.filter(c=>(SCHEDULE[c.abbr]||[]).includes(wd)&&(!c.startDate||ds>=c.startDate)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds)).length;
 }
 async function reassignMiss(abbr,fromDate,toDate){
   if(state.locked)return;
@@ -2931,7 +2935,7 @@ async function clearAllMissed(){
     const ds=ymd(d), wd=d.getDay();
     if(ds<STATS_SINCE) break;
     const existing=state.tasks.filter(t=>t.dueDate===ds&&t.type!=="filming"&&t.type!=="braindump");
-    state.clients.forEach(c=>{ if((SCHEDULE[c.abbr]||[]).includes(wd)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds)) keys.push(skipKey(c.abbr,ds)); });
+    state.clients.forEach(c=>{ if((SCHEDULE[c.abbr]||[]).includes(wd)&&(!c.startDate||ds>=c.startDate)&&!existing.some(t=>t.clientAbbr===c.abbr)&&!isSkipped(c.abbr,ds)) keys.push(skipKey(c.abbr,ds)); });
   }
   if(!keys.length){toast("No missed markers to clear");return;}
   if(!confirm("Clear "+keys.length+" missed marker"+(keys.length>1?"s":"")+" from past days?\n\nThey'll be dismissed for the whole team. Newly missed scheduled posts will still appear going forward.")) return;
@@ -3022,7 +3026,7 @@ function openAdd(prefillDate,prefillClient){
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   if(prefillClient)$("#fClient").value=prefillClient;
   $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fFootage2").value="";$("#fAudio").value="";$("#fNotes").value="";
-  $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;
+  $("#fDue").value=prefillDate||"";const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;const fcx=$("#fCaptions");if(fcx)fcx.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";const del=$("#delEntry");if(del){del.style.display="none";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
   setModalRO(false);
   $("#addScrim").classList.add("open");
@@ -3247,7 +3251,7 @@ function convertSticky(id){
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value="";$("#fFootage").value="";$("#fFootage2").value="";$("#fAudio").value="";$("#fNotes").value=t.notes||"";
-  const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;
+  const fd=$("#fDelivered");if(fd)fd.checked=false;const fr=$("#fRecur");if(fr)fr.value="none";const fv=$("#fRevision");if(fv)fv.checked=false;const fp=$("#fPriority");if(fp)fp.checked=false;const fcx=$("#fCaptions");if(fcx)fcx.checked=false;
   const de=$("#dupEntry");if(de)de.style.display="none";
   $("#addScrim").classList.add("open");
 }
@@ -3303,7 +3307,7 @@ function autoGrowNotes(){
 function setModalRO(ro){
   ro=!!ro; const scrim=$("#addScrim"); if(scrim)scrim.classList.toggle("ro",ro);
   ["fClient","fName","fAssignee","fDue","fNotes","fProject","fFootage","fFootage2","fAudio"].forEach(fid=>{const el=$("#"+fid);if(!el)return;if(el.tagName==="SELECT")el.disabled=ro;else el.readOnly=ro;});
-  ["fDelivered","fRecur","fRevision","fPriority"].forEach(fid=>{const el=$("#"+fid);if(el)el.disabled=ro;});
+  ["fDelivered","fRecur","fRevision","fPriority","fCaptions"].forEach(fid=>{const el=$("#"+fid);if(el)el.disabled=ro;});
   (window.requestAnimationFrame||setTimeout)(autoGrowNotes,0);
 }
 function openEdit(id){
@@ -3313,7 +3317,7 @@ function openEdit(id){
   curType=t.type;buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr;$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
   $("#fProject").value=t.projectUrl||"";$("#fFootage").value=t.footageUrl||"";$("#fFootage2").value=t.footageUrl2||"";$("#fAudio").value=t.audioUrl||"";$("#fNotes").value=t.notes||"";
-  const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;const fp=$("#fPriority");if(fp)fp.checked=!!t.priority;
+  const fd=$("#fDelivered");if(fd)fd.checked=!!t.delivered;const fr=$("#fRecur");if(fr)fr.value=t.recur||"none";const fv=$("#fRevision");if(fv)fv.checked=!!t.revision;const fp=$("#fPriority");if(fp)fp.checked=!!t.priority;const fcx=$("#fCaptions");if(fcx)fcx.checked=!!t.captions;
   const de=$("#dupEntry");if(de)de.style.display=ro?"none":"";const del=$("#delEntry");if(del){del.style.display=ro?"none":"";del.classList.remove("armed");const dl=$("#delLabel");if(dl)dl.textContent="Delete";}
   setModalRO(ro);
   $("#addScrim").classList.add("open");
@@ -3323,7 +3327,7 @@ async function saveEntry(){
   const id=$("#editId").value,abbr=$("#fClient").value;
   if(!abbr){toast("Pick a client");return;}
   const due=TYPE_MAP[curType].due?($("#fDue").value||null):null;
-  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),footageUrl2:$("#fFootage2").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false,priority:$("#fPriority")?$("#fPriority").checked:false};
+  const data={type:curType,clientAbbr:abbr,projectName:$("#fName").value.trim(),assignee:$("#fAssignee").value,dueDate:due,projectUrl:curType==="filming"?"":$("#fProject").value.trim(),footageUrl:$("#fFootage").value.trim(),footageUrl2:$("#fFootage2").value.trim(),audioUrl:curType==="filming"?"":$("#fAudio").value.trim(),notes:$("#fNotes").value.trim(),delivered:(curType==="daily"||curType==="longform")?$("#fDelivered").checked:false,recur:curType==="filming"?$("#fRecur").value:"none",revision:$("#fRevision")?$("#fRevision").checked:false,priority:$("#fPriority")?$("#fPriority").checked:false,captions:$("#fCaptions")?$("#fCaptions").checked:false};
   let task;
   if(id){const ex=state.tasks.find(x=>x.id===id);task=ex?{...ex,...data}:{id,completed:false,completedAt:null,createdAt:Date.now(),...data};}
   else task={id:"t"+Date.now()+Math.random().toString(36).slice(2,6),completed:false,completedAt:null,createdAt:Date.now(),...data};
@@ -3366,7 +3370,7 @@ function renderClients(filter=""){
       <select data-act="cat">${CATEGORIES.map(o=>`<option value="${o.key}" ${c.cat===o.key?"selected":""}>${esc(o.label)}</option>`).join("")}</select>
       <select data-act="cd" class="cl-cd ${c.director?"has":""}" title="Creative director - blank means we don't post for this client"><option value="">&mdash; no CD &mdash;</option>${DIRECTORS.map(d=>`<option value="${esc(d)}" ${c.director===d?"selected":""}>${esc(d)}</option>`).join("")}</select>
       <button class="ic del" data-act="rm" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
-      <div class="cl-days"><span class="lbl">Posts on</span>${["S","M","T","W","T","F","S"].map((d,i)=>`<button type="button" class="dchip ${(SCHEDULE[c.abbr]||[]).includes(i)?"on":""}" data-day="${i}" title="${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][i]}">${d}</button>`).join("")}</div>
+      <div class="cl-days"><span class="lbl">Posts on</span>${["S","M","T","W","T","F","S"].map((d,i)=>`<button type="button" class="dchip ${(SCHEDULE[c.abbr]||[]).includes(i)?"on":""}" data-day="${i}" title="${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][i]}">${d}</button>`).join("")}<span class="lbl clStarted">Started</span><input type="date" class="cl-start" data-act="start" value="${esc(c.startDate||"")}" title="Nothing before this date counts — no missed slots, no stats"></div>
     </div>`).join("")||`<div class="empty">No matches.</div>`;
   const _sv=()=>($("#cliSearch")&&$("#cliSearch").value)||"";
   const _seed=$("#cdSeed"); if(_seed) _seed.onclick=runCdSeed;
@@ -3374,6 +3378,8 @@ function renderClients(filter=""){
     const abbr=it.dataset.abbr;
     it.querySelector('[data-act="cat"]').onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,cat:e.target.value});renderClients(_sv());}};
     const cdSel=it.querySelector('[data-act="cd"]');
+    const stIn=it.querySelector('[data-act="start"]');
+    if(stIn) stIn.onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,startDate:e.target.value||""});render();}};
     if(cdSel) cdSel.onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,director:e.target.value||""});renderClients(_sv());}};
     const nameInp=it.querySelector('[data-act="name"]');
     if(nameInp){nameInp.onkeydown=e=>{if(e.key==="Enter")nameInp.blur();};nameInp.onchange=async()=>{const c=clientByAbbr(abbr);if(!c)return;const v=nameInp.value.trim();if(!v){nameInp.value=c.name;return;}if(v===c.name)return;await backend.upsertClient({...c,name:v});renderClients(_sv());toast("Name updated");};}
@@ -3401,8 +3407,10 @@ async function addClient(){
   if(!abbr)abbr=suggestAbbr(name);
   if(!abbr){toast("Enter an abbreviation");return;}
   if(clientByAbbr(abbr)){toast("That abbreviation is taken");return;}
-  await backend.upsertClient({name,abbr,cat:$("#ncCat").value});
-  $("#ncName").value="";$("#ncAbbr").value="";
+  // start date floors the schedule: no ghost slots, no "missed", no stats
+  // before it. Defaults to today so a new client never inherits a red history.
+  await backend.upsertClient({name,abbr,cat:$("#ncCat").value,startDate:$("#ncStart").value||todayStr()});
+  $("#ncName").value="";$("#ncAbbr").value="";$("#ncStart").value="";
   renderClients($("#cliSearch").value);render();toast(`Added ${abbr}`);
 }
 
@@ -3415,7 +3423,7 @@ async function renameClient(oldAbbr,raw){
   if(clientByAbbr(nu)){toast("That code is already in use");renderClients(sv);return;}
   const affected=state.tasks.filter(t=>t.clientAbbr===oldAbbr);
   if(affected.length&&!confirm(`Change ${oldAbbr} → ${nu}? This will update ${affected.length} entr`+(affected.length===1?"y":"ies")+" and its posting schedule.")){renderClients(sv);return;}
-  await backend.upsertClient({name:c.name,abbr:nu,cat:c.cat});
+  await backend.upsertClient({...c,abbr:nu});
   if(SCHEDULE[oldAbbr]){SCHEDULE[nu]=SCHEDULE[oldAbbr];delete SCHEDULE[oldAbbr];await backend.saveSchedule();}
   await Promise.all(affected.map(t=>backend.upsertTask({...t,clientAbbr:nu})));
   await backend.removeClient(oldAbbr);
@@ -3446,6 +3454,7 @@ function settingsHTML(){
         <div class="frow"><label>Client Name</label><input class="inp" id="ncName" placeholder="New client name"></div>
         <div class="frow"><label>Abbr.</label><input class="inp" id="ncAbbr" placeholder="ABCD" maxlength="6" style="text-transform:uppercase"></div>
         <div class="frow"><label>Category</label><select class="inp" id="ncCat"></select></div>
+        <div class="frow"><label>Start date</label><input class="inp" type="date" id="ncStart" title="Scheduled posting days before this date don't show as missed or count against stats"></div>
         <button class="btn primary" id="addClient" style="height:40px;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></button>
       </div>
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="cliSearch" placeholder="Search clients…"></div>
@@ -3588,8 +3597,8 @@ function parseCSV(text){
   return rows.filter(r=>r.length>1||(r.length===1&&r[0].trim()!==""));
 }
 function exportCSV(){
-  const headers=["ID","Type","ClientAbbr","ClientName","ProjectName","Editor","DueDate","Status","ProjectURL","FootageURL","FootageURL2","AudioURL","Notes"];
-  const rows=state.tasks.filter(t=>!t.completed).map(t=>{const c=clientByAbbr(t.clientAbbr)||{};return [t.id,(TYPE_MAP[t.type]?.label||t.type),t.clientAbbr,c.name||"",t.projectName||"",t.assignee||"",t.dueDate||"","Active",t.projectUrl||"",t.footageUrl||"",t.footageUrl2||"",t.audioUrl||"",t.notes||""];});
+  const headers=["ID","Type","ClientAbbr","ClientName","ProjectName","Editor","DueDate","Status","ProjectURL","FootageURL","FootageURL2","AudioURL","Notes","Captions"];
+  const rows=state.tasks.filter(t=>!t.completed).map(t=>{const c=clientByAbbr(t.clientAbbr)||{};return [t.id,(TYPE_MAP[t.type]?.label||t.type),t.clientAbbr,c.name||"",t.projectName||"",t.assignee||"",t.dueDate||"","Active",t.projectUrl||"",t.footageUrl||"",t.footageUrl2||"",t.audioUrl||"",t.notes||"",t.captions?"yes":""];});
   const blob=new Blob([toCSV(headers,rows)],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`anomaly-pipeline-${todayStr()}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
@@ -3601,7 +3610,7 @@ async function importCSV(file){
   let text; try{text=await file.text();}catch(e){toast("Couldn't read file");return;}
   const rows=parseCSV(text); if(rows.length<2){toast("Nothing to import");return;}
   const head=rows[0].map(h=>h.trim().toLowerCase()), idx=n=>head.indexOf(n);
-  const col={id:idx("id"),type:idx("type"),abbr:idx("clientabbr")>=0?idx("clientabbr"):idx("client"),name:idx("clientname"),proj:idx("projectname"),ed:idx("editor"),due:idx("duedate"),status:idx("status"),purl:idx("projecturl"),furl:idx("footageurl"),furl2:idx("footageurl2"),aurl:idx("audiourl"),notes:idx("notes")};
+  const col={id:idx("id"),type:idx("type"),abbr:idx("clientabbr")>=0?idx("clientabbr"):idx("client"),name:idx("clientname"),proj:idx("projectname"),ed:idx("editor"),due:idx("duedate"),status:idx("status"),purl:idx("projecturl"),furl:idx("footageurl"),furl2:idx("footageurl2"),aurl:idx("audiourl"),notes:idx("notes"),caps:idx("captions")};
   if(col.abbr<0){toast("CSV needs a ClientAbbr column");return;}
   let added=0,updated=0,skipped=0;
   for(let r=1;r<rows.length;r++){
@@ -3616,7 +3625,7 @@ async function importCSV(file){
     const completed=/complete|done/i.test(g(col.status));
     const id=g(col.id)||("t"+Date.now()+Math.random().toString(36).slice(2,6));
     const existing=state.tasks.find(x=>x.id===id);
-    await backend.upsertTask({id,type:typeId,clientAbbr:abbr,projectName:g(col.proj),assignee:g(col.ed),dueDate:due,projectUrl:g(col.purl),footageUrl:g(col.furl),footageUrl2:g(col.furl2),audioUrl:g(col.aurl),notes:g(col.notes),completed,completedAt:completed?((existing&&existing.completedAt)||Date.now()):null,createdAt:existing?existing.createdAt:Date.now()});
+    await backend.upsertTask({id,type:typeId,clientAbbr:abbr,projectName:g(col.proj),assignee:g(col.ed),dueDate:due,projectUrl:g(col.purl),footageUrl:g(col.furl),footageUrl2:g(col.furl2),audioUrl:g(col.aurl),notes:g(col.notes),captions:/^(yes|true|1)$/i.test(g(col.caps)),completed,completedAt:completed?((existing&&existing.completedAt)||Date.now()):null,createdAt:existing?existing.createdAt:Date.now()});
     existing?updated++:added++;
   }
   render();
