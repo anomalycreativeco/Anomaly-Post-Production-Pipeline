@@ -823,6 +823,13 @@ body.locked .ghost-x,body.locked .cchip.ghost.missed{cursor:default}
 body.locked .ghost-x,body.locked .ghost-check{display:none}
 .cl-days{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:4px}
 .cl-days .lbl{font-size:11px;color:var(--muted);font-weight:700;margin-right:3px}
+/* social links: a second full-width line under the posting days, so the
+   5-column row grid above stays exactly as it is */
+.cl-social{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:4px}
+.cl-soc{border:1px solid var(--line-2);border-radius:7px;padding:4px 7px;font-size:11.5px;background:var(--paper);color:var(--ink);font-family:inherit;width:100%;min-width:0}
+.cl-soc::placeholder{color:var(--muted);opacity:.7}
+.cl-soc.bad{border-color:#c0563c}
+@media(max-width:640px){.cl-social{grid-template-columns:1fr 1fr}}
 .dchip{width:24px;height:24px;border-radius:7px;border:1px solid var(--line-2);background:var(--paper);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;padding:0}
 .dchip.on{background:var(--sage);border-color:var(--sage);color:#10201d}
 .dchip:hover{border-color:var(--sage)}
@@ -1679,7 +1686,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.20.0", APP_BUILD="2026-09-11";
+const APP_VERSION="2.21.0", APP_BUILD="2026-09-11";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -3371,6 +3378,7 @@ function renderClients(filter=""){
       <select data-act="cd" class="cl-cd ${c.director?"has":""}" title="Creative director - blank means we don't post for this client"><option value="">&mdash; no CD &mdash;</option>${DIRECTORS.map(d=>`<option value="${esc(d)}" ${c.director===d?"selected":""}>${esc(d)}</option>`).join("")}</select>
       <button class="ic del" data-act="rm" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
       <div class="cl-days"><span class="lbl">Posts on</span>${["S","M","T","W","T","F","S"].map((d,i)=>`<button type="button" class="dchip ${(SCHEDULE[c.abbr]||[]).includes(i)?"on":""}" data-day="${i}" title="${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][i]}">${d}</button>`).join("")}<span class="lbl clStarted">Started</span><input type="date" class="cl-start" data-act="start" value="${esc(c.startDate||"")}" title="Nothing before this date counts — no missed slots, no stats"></div>
+      <div class="cl-social">${SOCIAL_KEYS.map(([k,ph])=>`<input class="cl-soc" data-act="social-${k}" data-key="${k}" value="${esc((c.social||{})[k]||"")}" placeholder="${ph}" spellcheck="false" autocomplete="off" title="${SOCIAL_LABEL[k]} — feeds the hub's weekly Social Stats">`).join("")}</div>
     </div>`).join("")||`<div class="empty">No matches.</div>`;
   const _sv=()=>($("#cliSearch")&&$("#cliSearch").value)||"";
   const _seed=$("#cdSeed"); if(_seed) _seed.onclick=runCdSeed;
@@ -3380,6 +3388,15 @@ function renderClients(filter=""){
     const cdSel=it.querySelector('[data-act="cd"]');
     const stIn=it.querySelector('[data-act="start"]');
     if(stIn) stIn.onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,startDate:e.target.value||""});render();}};
+    // onchange, not oninput, and no re-render: typing a URL must not lose focus
+    it.querySelectorAll('[data-act^="social-"]').forEach(inp=>{
+      inp.onkeydown=e=>{if(e.key==="Enter")inp.blur();};
+      inp.onchange=async()=>{const c=clientByAbbr(abbr);if(!c)return;const k=inp.dataset.key,v=normSocial(k,inp.value);
+        if(v===null){inp.classList.add("bad");toast("That doesn't look like a "+SOCIAL_LABEL[k]+" link");return;}
+        inp.classList.remove("bad");inp.value=v;
+        const social={...(c.social||{})};if(v)social[k]=v;else delete social[k];
+        await backend.upsertClient({...c,social});await syncSocialMirror();toast(SOCIAL_LABEL[k]+(v?" saved":" cleared"));};
+    });
     if(cdSel) cdSel.onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,director:e.target.value||""});renderClients(_sv());}};
     const nameInp=it.querySelector('[data-act="name"]');
     if(nameInp){nameInp.onkeydown=e=>{if(e.key==="Enter")nameInp.blur();};nameInp.onchange=async()=>{const c=clientByAbbr(abbr);if(!c)return;const v=nameInp.value.trim();if(!v){nameInp.value=c.name;return;}if(v===c.name)return;await backend.upsertClient({...c,name:v});renderClients(_sv());toast("Name updated");};}
@@ -3400,6 +3417,36 @@ function suggestAbbr(name){
   if(base.length<2)return"";
   let a=base,i=1;while(clientByAbbr(a)){a=(base.slice(0,3)+i).toUpperCase();i++;}
   return a;
+}
+/* ---- social links -------------------------------------------------------
+   Stored on the client record as social:{ig,tiktok,yt,fb} (canonical URLs).
+   The weekly collector can't read clients/* anonymously, so every save also
+   mirrors {abbr + links} into hub/socialAccounts — public profile URLs only,
+   nothing else about the client leaves the authed collection. */
+const SOCIAL_KEYS=[["ig","Instagram URL or @handle"],["tiktok","TikTok URL or @handle"],["yt","YouTube URL or @handle"],["fb","Facebook page URL (reference only)"]];
+const SOCIAL_LABEL={ig:"Instagram",tiktok:"TikTok",yt:"YouTube",fb:"Facebook"};
+const SOCIAL_HOST={ig:["instagram.com"],tiktok:["tiktok.com"],yt:["youtube.com","youtu.be"],fb:["facebook.com","fb.com"]};
+function normSocial(k,raw){
+  const s=String(raw||"").trim();
+  if(!s)return "";
+  if(/\s/.test(s))return null;
+  if(/^@?[A-Za-z0-9._-]+$/.test(s)){const h=s.replace(/^@/,"");
+    return k==="ig"?`https://www.instagram.com/${h}/`:k==="tiktok"?`https://www.tiktok.com/@${h}`:k==="yt"?`https://www.youtube.com/@${h}`:`https://www.facebook.com/${h}`;}
+  let u;try{u=new URL(/^https?:\/\//i.test(s)?s:"https://"+s);}catch(e){return null;}
+  const host=u.hostname.toLowerCase().replace(/^(www|m|mobile)\./,"");
+  if(!SOCIAL_HOST[k].some(d=>host===d||host.endsWith("."+d)))return null;
+  let path=u.pathname.replace(/\/+$/,"");
+  if(k==="yt")path=path.replace(/\/(shorts|videos|streams|featured|reels)$/i,"");
+  if(!path)return null;
+  const out="https://"+(host==="youtu.be"?"youtu.be":"www."+host)+path;
+  return k==="ig"?out+"/":out;
+}
+async function syncSocialMirror(){
+  const list=state.clients.filter(c=>c.social&&Object.values(c.social).some(Boolean)).map(c=>({abbr:c.abbr,...c.social}));
+  try{
+    if(fb())await FBSDK.setDoc(FBSDK.doc(db,"hub","socialAccounts"),{list:JSON.stringify(list),updatedBy:(typeof AUTH_USER!=="undefined"&&AUTH_USER&&AUTH_USER.email)||"",at:Date.now()});
+    else LS.set("acc_social_mirror",list);
+  }catch(e){toast("Saved, but the social mirror didn't update ("+(e.code||"error")+")");}
 }
 async function addClient(){
   const name=$("#ncName").value.trim();let abbr=$("#ncAbbr").value.trim().toUpperCase();
@@ -3597,8 +3644,8 @@ function parseCSV(text){
   return rows.filter(r=>r.length>1||(r.length===1&&r[0].trim()!==""));
 }
 function exportCSV(){
-  const headers=["ID","Type","ClientAbbr","ClientName","ProjectName","Editor","DueDate","Status","ProjectURL","FootageURL","FootageURL2","AudioURL","Notes","Captions"];
-  const rows=state.tasks.filter(t=>!t.completed).map(t=>{const c=clientByAbbr(t.clientAbbr)||{};return [t.id,(TYPE_MAP[t.type]?.label||t.type),t.clientAbbr,c.name||"",t.projectName||"",t.assignee||"",t.dueDate||"","Active",t.projectUrl||"",t.footageUrl||"",t.footageUrl2||"",t.audioUrl||"",t.notes||"",t.captions?"yes":""];});
+  const headers=["ID","Type","ClientAbbr","ClientName","ProjectName","Editor","DueDate","Status","ProjectURL","FootageURL","FootageURL2","AudioURL","Notes","Captions","ClientIG","ClientTikTok","ClientYT","ClientFB"];
+  const rows=state.tasks.filter(t=>!t.completed).map(t=>{const c=clientByAbbr(t.clientAbbr)||{};return [t.id,(TYPE_MAP[t.type]?.label||t.type),t.clientAbbr,c.name||"",t.projectName||"",t.assignee||"",t.dueDate||"","Active",t.projectUrl||"",t.footageUrl||"",t.footageUrl2||"",t.audioUrl||"",t.notes||"",t.captions?"yes":"",(c.social||{}).ig||"",(c.social||{}).tiktok||"",(c.social||{}).yt||"",(c.social||{}).fb||""];});
   const blob=new Blob([toCSV(headers,rows)],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`anomaly-pipeline-${todayStr()}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
@@ -3610,9 +3657,9 @@ async function importCSV(file){
   let text; try{text=await file.text();}catch(e){toast("Couldn't read file");return;}
   const rows=parseCSV(text); if(rows.length<2){toast("Nothing to import");return;}
   const head=rows[0].map(h=>h.trim().toLowerCase()), idx=n=>head.indexOf(n);
-  const col={id:idx("id"),type:idx("type"),abbr:idx("clientabbr")>=0?idx("clientabbr"):idx("client"),name:idx("clientname"),proj:idx("projectname"),ed:idx("editor"),due:idx("duedate"),status:idx("status"),purl:idx("projecturl"),furl:idx("footageurl"),furl2:idx("footageurl2"),aurl:idx("audiourl"),notes:idx("notes"),caps:idx("captions")};
+  const col={id:idx("id"),type:idx("type"),abbr:idx("clientabbr")>=0?idx("clientabbr"):idx("client"),name:idx("clientname"),proj:idx("projectname"),ed:idx("editor"),due:idx("duedate"),status:idx("status"),purl:idx("projecturl"),furl:idx("footageurl"),furl2:idx("footageurl2"),aurl:idx("audiourl"),notes:idx("notes"),caps:idx("captions"),sig:idx("clientig"),stt:idx("clienttiktok"),syt:idx("clientyt"),sfb:idx("clientfb")};
   if(col.abbr<0){toast("CSV needs a ClientAbbr column");return;}
-  let added=0,updated=0,skipped=0;
+  let added=0,updated=0,skipped=0;const socialDone=new Set();
   for(let r=1;r<rows.length;r++){
     const row=rows[r],g=i=>(i>=0&&i<row.length)?String(row[i]).trim():"";
     const abbr=g(col.abbr).toUpperCase(); if(!abbr){skipped++;continue;}
@@ -3622,12 +3669,15 @@ async function importCSV(file){
     const usesDue=TYPE_MAP[typeId]&&TYPE_MAP[typeId].due;
     let due=g(col.due)||null; if(due&&!/^\d{4}-\d{2}-\d{2}$/.test(due)){const d=new Date(due);due=isNaN(+d)?null:ymd(d);} if(!usesDue)due=null;
     if(!clientByAbbr(abbr)){const nm=g(col.name)||abbr;const ck=(CATEGORIES.find(c=>c.key==="misc")||CATEGORIES[0]||{}).key||"misc";await backend.upsertClient({name:nm,abbr,cat:ck});}
+    if(!socialDone.has(abbr)){const rowSocial={};[["ig",col.sig],["tiktok",col.stt],["yt",col.syt],["fb",col.sfb]].forEach(([k,i])=>{const v=normSocial(k,g(i));if(v)rowSocial[k]=v;});
+      if(Object.keys(rowSocial).length){socialDone.add(abbr);const cc=clientByAbbr(abbr);if(cc){const merged={...(cc.social||{}),...rowSocial};if(JSON.stringify(merged)!==JSON.stringify(cc.social||{}))await backend.upsertClient({...cc,social:merged});}}}
     const completed=/complete|done/i.test(g(col.status));
     const id=g(col.id)||("t"+Date.now()+Math.random().toString(36).slice(2,6));
     const existing=state.tasks.find(x=>x.id===id);
     await backend.upsertTask({id,type:typeId,clientAbbr:abbr,projectName:g(col.proj),assignee:g(col.ed),dueDate:due,projectUrl:g(col.purl),footageUrl:g(col.furl),footageUrl2:g(col.furl2),audioUrl:g(col.aurl),notes:g(col.notes),captions:/^(yes|true|1)$/i.test(g(col.caps)),completed,completedAt:completed?((existing&&existing.completedAt)||Date.now()):null,createdAt:existing?existing.createdAt:Date.now()});
     existing?updated++:added++;
   }
+  if(socialDone.size)await syncSocialMirror();
   render();
   toast(`Imported ${added} new, ${updated} updated${skipped?`, ${skipped} skipped`:""}`);
 }
