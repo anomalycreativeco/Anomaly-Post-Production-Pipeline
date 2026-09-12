@@ -546,6 +546,10 @@ textarea.inp{resize:vertical;min-height:64px}
 .cl-cd{min-width:0;width:100%}
 .cl-cd:not(.has){color:var(--muted);font-style:italic}
 .cd-seed-btn{font-size:12px;padding:5px 12px;margin-left:auto}
+.soc-row{padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.soc-row.miss{color:var(--muted)}
+.soc-row i{color:var(--muted);font-style:normal;font-size:12px}
+#socPreview{margin-top:10px;max-height:260px;overflow-y:auto}
 /* 5 columns: code, name, category, creative director, delete. Adding the CD
    select without widening this pushed it into the 36px delete column and
    bumped the trash icon onto its own row. */
@@ -1108,6 +1112,17 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
     <div class="mh"><h2>Jarvis proposal</h2><button class="x" data-aiclose><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
     <div class="mb"><div class="sum" id="aiSummary"></div><div id="aiPreview"></div></div>
     <div class="mf"><span style="flex:1"></span><button class="btn" data-aiclose>Reject all</button><button class="btn primary" id="aiAccept" disabled>Accept</button></div>
+  </div>
+</div>
+<div class="scrim" id="socScrim">
+  <div class="modal">
+    <div class="mh"><h2>Paste social links</h2><button class="x" data-socclose><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+    <div class="mb">
+      <div class="sum">One client per line: the client's name or code, then its links — any order, separated by <b>|</b>. Handles work too (<b>@name</b> is read as Instagram, TikTok, YouTube, Facebook in that order). JSON from Claude pastes straight in.</div>
+      <textarea class="inp" id="socList" rows="8" placeholder="Beechwood Homes | https://www.instagram.com/beechwoodhomesnc/ | https://www.youtube.com/@beechwoodhomes&#10;OAC 919 | @olympusathleticclub | @olympus.athletic"></textarea>
+      <div id="socPreview"></div>
+    </div>
+    <div class="mf"><span style="flex:1"></span><button class="btn" data-socclose>Cancel</button><button class="btn primary" id="socApply" disabled>Save links</button></div>
   </div>
 </div>
 <div class="scrim" id="addScrim">
@@ -1686,7 +1701,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.21.0", APP_BUILD="2026-09-11";
+const APP_VERSION="2.21.1", APP_BUILD="2026-09-12";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -3382,6 +3397,7 @@ function renderClients(filter=""){
     </div>`).join("")||`<div class="empty">No matches.</div>`;
   const _sv=()=>($("#cliSearch")&&$("#cliSearch").value)||"";
   const _seed=$("#cdSeed"); if(_seed) _seed.onclick=runCdSeed;
+  const _sp=$("#socPaste"); if(_sp) _sp.onclick=openSocialPaste;
   $("#cliList").querySelectorAll(".cl-item").forEach(it=>{
     const abbr=it.dataset.abbr;
     it.querySelector('[data-act="cat"]').onchange=async e=>{const c=clientByAbbr(abbr);if(c){await backend.upsertClient({...c,cat:e.target.value});renderClients(_sv());}};
@@ -3441,6 +3457,52 @@ function normSocial(k,raw){
   const out="https://"+(host==="youtu.be"?"youtu.be":"www."+host)+path;
   return k==="ig"?out+"/":out;
 }
+/* Paste-many importer. Matches each line to a client the same way the CD
+   seed does (code, then name contains), detects a URL's platform from its
+   host, and falls back to positional order for bare @handles. */
+let SOC_PLAN=[];
+function detectPlatform(tok){const t=String(tok).toLowerCase();if(/instagram\.com/.test(t))return "ig";if(/tiktok\.com/.test(t))return "tiktok";if(/youtube\.com|youtu\.be/.test(t))return "yt";if(/facebook\.com|fb\.com/.test(t))return "fb";return null;}
+function parseSocialPaste(text){
+  const t=String(text||"").trim(); if(!t)return [];
+  if(t[0]==="["||t[0]==="{"){
+    try{const j=JSON.parse(t);const arr=Array.isArray(j)?j:(j.list||[]);
+      return arr.map(o=>({who:String(o.client||o.businessName||o.name||o.abbr||"").trim(),ig:o.ig||"",tiktok:o.tiktok||"",yt:o.yt||"",fb:o.fb||""}));}
+    catch(e){return null;}
+  }
+  return t.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&l[0]!=="#").map(l=>{
+    const parts=(/[|\t]/.test(l)?l.split(/\s*[|\t]\s*/):l.split(/\s*,\s*/)).map(x=>x.trim()).filter(Boolean);
+    const row={who:parts.shift()||"",ig:"",tiktok:"",yt:"",fb:""};
+    const order=["ig","tiktok","yt","fb"];
+    parts.forEach(tok=>{let k=detectPlatform(tok);if(!k)k=order.find(x=>!row[x]);if(k&&!row[k])row[k]=tok;});
+    return row;
+  });
+}
+function previewSocialPaste(){
+  const box=$("#socPreview"),apply=$("#socApply");
+  const rows=parseSocialPaste($("#socList").value);
+  if(rows===null){box.innerHTML='<div class="soc-row miss">That JSON didn\'t parse.</div>';apply.disabled=true;SOC_PLAN=[];return;}
+  SOC_PLAN=[];const taken=new Set();let html="";
+  rows.forEach(r=>{
+    const c=r.who?cdMatch([r.who]):null;
+    const links={},bad=[];
+    [["ig",r.ig],["tiktok",r.tiktok],["yt",r.yt],["fb",r.fb]].forEach(([k,v])=>{if(!v)return;const n=normSocial(k,v);if(n)links[k]=n;else bad.push(SOCIAL_LABEL[k]);});
+    if(c&&Object.keys(links).length&&!taken.has(c.abbr)){
+      taken.add(c.abbr);SOC_PLAN.push({abbr:c.abbr,links});
+      html+=`<div class="soc-row"><b>${esc(c.abbr)}</b> ${esc(c.name)} &larr; ${Object.keys(links).map(k=>SOCIAL_LABEL[k]).join(", ")}${bad.length?` <i>(skipped ${bad.join(", ")})</i>`:""}</div>`;
+    }else html+=`<div class="soc-row miss">${esc(r.who||"(no name)")} &mdash; ${!c?"no client matched":taken.has(c.abbr)?"duplicate":"no usable links"}</div>`;
+  });
+  box.innerHTML=html||"";apply.disabled=!SOC_PLAN.length;
+  apply.textContent=SOC_PLAN.length?`Save links for ${SOC_PLAN.length} client${SOC_PLAN.length===1?"":"s"}`:"Save links";
+}
+function openSocialPaste(){if(state.locked){toast("Unlock editing first");return;}$("#socList").value="";$("#socPreview").innerHTML="";$("#socApply").disabled=true;$("#socScrim").classList.add("open");setTimeout(()=>$("#socList").focus(),50);}
+function closeSocialPaste(){$("#socScrim").classList.remove("open");SOC_PLAN=[];}
+async function applySocialPaste(){
+  if(state.locked){toast("Unlock editing first");return;}
+  let n=0;
+  for(const {abbr,links} of SOC_PLAN){const c=clientByAbbr(abbr);if(!c)continue;await backend.upsertClient({...c,social:{...(c.social||{}),...links}});n++;}
+  await syncSocialMirror();closeSocialPaste();renderClients(($("#cliSearch")&&$("#cliSearch").value)||"");
+  toast(`Social links saved for ${n} client${n===1?"":"s"}`);
+}
 async function syncSocialMirror(){
   const list=state.clients.filter(c=>c.social&&Object.values(c.social).some(Boolean)).map(c=>({abbr:c.abbr,...c.social}));
   try{
@@ -3495,6 +3557,7 @@ function settingsHTML(){
   return `<div class="settings">
     <div class="card set-card set-wide cl-card ${LS.get("acc_set_clients_open",false)?"open":""}">
       <button type="button" class="btn cd-seed-btn" id="cdSeed" title="Apply the creative-director list to matching clients">Assign CDs</button>
+      <button type="button" class="btn cd-seed-btn" id="socPaste" style="margin-left:8px" title="Paste many clients' social links at once">Paste links</button>
       <button type="button" class="card-h cl-head" id="cliCollapse" aria-label="Toggle clients"><span>Clients <span class="set-count">${state.clients.length}</span></span><svg class="cl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="cl-body">
       <div class="cl-add">
@@ -4299,6 +4362,9 @@ function closeJarvis(){const p=$("#jarvisPanel");p.classList.remove("open");setT
 function toggleJarvis(){const p=$("#jarvisPanel");if(p.classList.contains("open"))closeJarvis();else openJarvis();}
 
 function initAiProposal(){
+  const soc=$("#socScrim");
+  if(soc){soc.addEventListener("click",e=>{if(e.target.closest("[data-socclose]")||e.target===soc)closeSocialPaste();});
+    $("#socList").addEventListener("input",previewSocialPaste);$("#socApply").onclick=applySocialPaste;}
   const scrim=$("#aiScrim"); if(!scrim)return;
   scrim.addEventListener("click",e=>{ if(e.target.closest("[data-aiclose]")||e.target===scrim) closeAiProposal(); });
   $("#aiAccept").addEventListener("click",aiCommit);
