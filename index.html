@@ -1704,7 +1704,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.23.0", APP_BUILD="2026-09-21";
+const APP_VERSION="2.23.1", APP_BUILD="2026-09-30";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2384,7 +2384,7 @@ function calendarHTML(tasks){
   const dated={}, nodate=[];
   tasks.forEach(t=>{const tp=TYPE_MAP[t.type];if(tp&&tp.due&&t.dueDate)(dated[t.dueDate]=dated[t.dueDate]||[]).push(t);else nodate.push(t);});
   const todayLocal=ymd(new Date());
-  const hzD=new Date();hzD.setDate(hzD.getDate()+28);const horizon=ymd(hzD);
+  const hzD=new Date();hzD.setDate(hzD.getDate()+60);const horizon=ymd(hzD); // ghost slots are drawn this far ahead
   const showGhosts=(state.tab==="master"||state.tab==="daily")&&!state.search.trim();
   const ghostsFor=(ds)=>{
     if(!showGhosts||ds>horizon)return"";
