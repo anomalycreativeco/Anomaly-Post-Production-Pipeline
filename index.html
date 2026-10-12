@@ -1011,8 +1011,10 @@ body.phone .tabs{flex:1 1 0;min-width:0;padding:3px}
 body.phone .tab{padding:10px 12px;font-size:13px;min-height:42px}
 body.phone .controls .search-ctl,body.phone .controls .field{display:none}
 body.phone .controls.open .search-ctl,body.phone .controls.open .field{display:flex}
-body.phone .filters-btn{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 12px;border-radius:10px;font-weight:600;font-size:13px}
-body.phone .filters-btn svg{width:16px;height:16px}
+body.phone .filters-btn{display:inline-flex;align-items:center;gap:5px;min-height:42px;min-width:44px;padding:0 10px;border-radius:10px;font-weight:600;font-size:13px;flex:0 0 auto}
+body.phone .filters-btn svg{width:18px;height:18px}
+body.phone .filters-btn .fl{display:none}
+body.phone .controls.open .filters-btn{background:var(--ink);color:#fff;border-color:var(--ink)}
 body.phone .filters-btn[data-n]:not([data-n="0"])::after{content:attr(data-n);background:var(--sage);color:#fff;border-radius:999px;font-size:11px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 5px}
 body.phone .controls .field .sel,body.phone .search-ctl input{min-height:44px}
 body.phone.calview .field.f-sort{display:none!important}
@@ -1125,7 +1127,7 @@ body.phone .cal-nodate .cchip{width:100%;min-height:44px;font-size:14px}
 
 <div class="controls">
   <div class="tabs" id="tabs"></div>
-  <button class="btn filters-btn" id="filtersBtn" type="button" data-n="0" title="Show the category, editor and search filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filters</button>
+  <button class="btn filters-btn" id="filtersBtn" type="button" data-n="0" title="Show the category, editor and search filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fl">Filters</span></button>
   <div class="spacer"></div>
   <div class="search-ctl">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1814,7 +1816,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.24.0", APP_BUILD="2026-10-12";
+const APP_VERSION="2.24.1", APP_BUILD="2026-10-12";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
