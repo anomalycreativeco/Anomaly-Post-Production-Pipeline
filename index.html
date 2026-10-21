@@ -1816,7 +1816,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.24.1", APP_BUILD="2026-10-12";
+const APP_VERSION="2.25.0", APP_BUILD="2026-10-21";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -3189,7 +3189,7 @@ async function delTask(id){
 }
 
 /* ============ add/edit ============ */
-let curType="longform";
+let curType="daily";   // New Entry starts as a Daily unless a type tab is open (Daniel, 2026-10-21)
 function buildTypePick(){
   $("#typePick").innerHTML=TYPES.filter(t=>t.id!=="braindump").map(t=>`<button class="tp${t.id===curType?" sel":""}" data-tp="${t.id}">${t.label}</button>`).join("");
   $("#typePick").querySelectorAll(".tp").forEach(b=>b.onclick=()=>{curType=b.dataset.tp;buildTypePick();syncDueRow();});
@@ -3213,8 +3213,8 @@ function openAdd(prefillDate,prefillClient){
   $("#editId").value="";$("#addTitle").textContent="New Entry";
   const tabType=(state.tab!=="master"&&TYPE_MAP[state.tab])?state.tab:null;
   if(prefillClient)curType="daily";
-  else if(prefillDate)curType=(tabType&&TYPE_MAP[tabType].due)?tabType:"longform";
-  else curType=tabType||"longform";
+  else if(prefillDate)curType=(tabType&&TYPE_MAP[tabType].due)?tabType:"daily";
+  else curType=tabType||"daily";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   if(prefillClient)$("#fClient").value=prefillClient;
   $("#fName").value="";$("#fAssignee").value="";$("#fProject").value="";$("#fFootage").value="";$("#fFootage2").value="";$("#fAudio").value="";$("#fNotes").value="";
@@ -3437,8 +3437,8 @@ async function delSticky(id){if(state.locked)return;const t=state.tasks.find(x=>
 function convertSticky(id){
   if(state.locked)return;
   const t=state.tasks.find(x=>x.id===id);if(!t)return;
-  const dt=TYPES.find(x=>x.id==="longform")||TYPES.find(x=>x.due&&x.id!=="filming"&&x.id!=="braindump")||TYPES.find(x=>x.id!=="filming"&&x.id!=="braindump")||TYPES[0];
-  curType=dt?dt.id:"longform";
+  const dt=TYPES.find(x=>x.id==="daily")||TYPES.find(x=>x.due&&x.id!=="filming"&&x.id!=="braindump")||TYPES.find(x=>x.id!=="filming"&&x.id!=="braindump")||TYPES[0];
+  curType=dt?dt.id:"daily";
   $("#editId").value=id;$("#addTitle").textContent="Convert to deliverable";
   buildTypePick();syncDueRow();fillClientSelect($("#fClient"));
   $("#fClient").value=t.clientAbbr||"";$("#fName").value=t.projectName||"";$("#fAssignee").value=t.assignee||"";$("#fDue").value=t.dueDate||"";
