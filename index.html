@@ -975,6 +975,28 @@ body.locked .ghost-x,body.locked .ghost-check{display:none}
 .copybtn:hover{color:var(--ink);border-color:var(--muted)}
 .copybtn.copied{color:#fff;background:var(--sage-deep,#3f7457);border-color:var(--sage-deep,#3f7457)}
 
+/* ===== Holidays on the calendar (v2.26.0) ===== */
+.hol{display:inline-flex;align-items:center;gap:5px;border:none;background:#f3ead0;color:#6e5212;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;width:100%;text-align:left;cursor:pointer;margin:0 0 2px;font-family:inherit;min-width:0}
+.hol svg{width:12px;height:12px;flex:0 0 auto}
+.hol span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hol:hover{background:#ecdfb4}
+[data-theme="dark"] .hol{background:#3a3220;color:#e6c77a}
+[data-theme="dark"] .hol:hover{background:#4a4028}
+.cal-upcoming{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
+.cal-upcoming .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+.upc{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line-2);background:var(--canvas);border-radius:10px;padding:6px 10px;cursor:pointer;color:var(--ink);font-family:inherit;min-height:40px}
+.upc b{font-size:12.5px;font-weight:700}
+.upc span{font-size:11px;color:var(--muted)}
+.upc:hover{border-color:var(--sage);background:var(--sage-tint)}
+.sw.hol-sw{background:#f3ead0;border:1px solid #d9c38a}
+.cal-cell.mini.has-hol{background:#f8f3e4}
+.cal-cell.mini.has-hol .cal-num{box-shadow:inset 0 0 0 2px #d4a84a}
+[data-theme="dark"] .cal-cell.mini.has-hol{background:#2b2718}
+.cal-aday .hol{min-height:40px;font-size:13px;padding:8px 10px;border-radius:10px;margin-top:6px}
+.cal-aday .hol svg{width:14px;height:14px}
+body.phone .cal-upcoming{padding:8px 12px}
+body.phone .upc{flex:1 1 46%}
+
 /* ===== Phone layout (v2.24.0) ===============================================
    body.phone is set from matchMedia("(max-width:720px)"). Desktop is untouched:
    every rule here is scoped to body.phone or to a class only the phone render
@@ -1816,7 +1838,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clientByAbbr=a=>state.clients.find(c=>c.abbr===a);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
-const APP_VERSION="2.25.0", APP_BUILD="2026-10-21";
+const APP_VERSION="2.26.0", APP_BUILD="2026-11-02";
 const DEFAULT_TZ="America/New_York";
 let PROJECT_TZ="";
 function projTZ(){return PROJECT_TZ||DEFAULT_TZ;}
@@ -2372,7 +2394,7 @@ function calLegend(){
     title="Edit type";
     items=TYPES.filter(tp=>tp.id!=="filming"&&tp.id!=="braindump").map(tp=>[tp.color,tp.label]);
   }
-  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span><span class="lg"><span class="sw" style="background:transparent;border:1px dashed var(--sage-800)"></span>RCH planner (read-only)</span><span class="lg"><span class="sw swprio"></span>High priority</span></div>`;
+  return `<div class="cal-legend"><span class="lg-title">${title}</span>${items.map(([c,l])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${esc(l)}</span>`).join("")}<span class="lg"><span class="sw" style="background:linear-gradient(90deg,var(--sage) 0 50%, var(--canvas) 50% 100%)"></span>Delivered · not posted</span><span class="lg"><span class="sw hol-sw"></span>Holiday</span><span class="lg"><span class="sw" style="background:transparent;border:1px dashed var(--sage-800)"></span>RCH planner (read-only)</span><span class="lg"><span class="sw swprio"></span>High priority</span></div>`;
 }
 function nodateStrip(nodate){return nodate.length?`<div class="cal-nodate"><span class="lbl">No date / dailies</span>${nodate.map(calChip).join("")}</div>`:"";}
 
@@ -2494,6 +2516,85 @@ function rchPlanFor(ds){
     return `<button class="cchip plan ${r.done?"plan-done":""}" data-planner="1" data-planmk="${mk}" data-planid="${esc(r.id)}" title="${esc(tip)}"><span class="plan-tick ${r.done?"on":""}" data-plantick="1" title="${r.done?"Done in the planner — click to reopen":"Mark done in the planner"}"></span><span class="plan-lbl">RCH · ${esc(label)}</span></button>`;
   }).join("");
 }
+/* ---- Holidays on the calendar (v2.26.0) ------------------------------------
+   The set Daniel picked on 2026-11-02; `on:false` keeps the ones he turned off
+   so they can be switched back on here. Each is a rule, not a date, so every
+   year works: fixed [month, day]; nth [month, weekday 0=Sun, n]; last [month,
+   weekday]; easter; offset = days after the computed date. They show as a
+   marker on the day and in a "Coming up" line above the calendar for the next
+   HOLIDAY_LEAD days, so posts can be planned while there is still time. */
+const HOLIDAY_LEAD=28;
+const HOLIDAYS=[
+  {id:"newyear",name:"New Year's Day",on:true,fixed:[1,1]},
+  {id:"mlk",name:"MLK Day",on:false,nth:[1,1,3]},
+  {id:"groundhog",name:"Groundhog Day",on:false,fixed:[2,2]},
+  {id:"superbowl",name:"Super Bowl Sunday",on:true,nth:[2,0,2]},
+  {id:"valentines",name:"Valentine's Day",on:true,fixed:[2,14]},
+  {id:"presidents",name:"Presidents' Day",on:false,nth:[2,1,3]},
+  {id:"stpatricks",name:"St. Patrick's Day",on:false,fixed:[3,17]},
+  {id:"spring",name:"First day of spring",on:true,fixed:[3,20]},
+  {id:"easter",name:"Easter",on:true,easter:true},
+  {id:"aprilfools",name:"April Fools' Day",on:true,fixed:[4,1]},
+  {id:"taxday",name:"Tax Day",on:false,fixed:[4,15]},
+  {id:"earthday",name:"Earth Day",on:false,fixed:[4,22]},
+  {id:"cinco",name:"Cinco de Mayo",on:false,fixed:[5,5]},
+  {id:"mothers",name:"Mother's Day",on:true,nth:[5,0,2]},
+  {id:"memorial",name:"Memorial Day",on:true,last:[5,1]},
+  {id:"flagday",name:"Flag Day",on:false,fixed:[6,14]},
+  {id:"juneteenth",name:"Juneteenth",on:false,fixed:[6,19]},
+  {id:"fathers",name:"Father's Day",on:true,nth:[6,0,3]},
+  {id:"summer",name:"First day of summer",on:true,fixed:[6,21]},
+  {id:"july4",name:"Independence Day",on:true,fixed:[7,4]},
+  {id:"labor",name:"Labor Day",on:true,nth:[9,1,1]},
+  {id:"fall",name:"First day of fall",on:true,fixed:[9,22]},
+  {id:"indigenous",name:"Indigenous Peoples' Day",on:false,nth:[10,1,2]},
+  {id:"halloween",name:"Halloween",on:true,fixed:[10,31]},
+  {id:"veterans",name:"Veterans Day",on:true,fixed:[11,11]},
+  {id:"thanksgiving",name:"Thanksgiving",on:true,nth:[11,4,4]},
+  {id:"blackfriday",name:"Black Friday",on:true,nth:[11,4,4],offset:1},
+  {id:"smallbizsat",name:"Small Business Saturday",on:true,nth:[11,4,4],offset:2},
+  {id:"cybermonday",name:"Cyber Monday",on:true,nth:[11,4,4],offset:4},
+  {id:"givingtuesday",name:"Giving Tuesday",on:false,nth:[11,4,4],offset:5},
+  {id:"winter",name:"First day of winter",on:true,fixed:[12,21]},
+  {id:"xmaseve",name:"Christmas Eve",on:true,fixed:[12,24]},
+  {id:"xmas",name:"Christmas Day",on:true,fixed:[12,25]},
+  {id:"boxingday",name:"Boxing Day",on:false,fixed:[12,26]},
+  {id:"nye",name:"New Year's Eve",on:true,fixed:[12,31]},
+];
+function nthWeekday(y,m,wd,n){const first=new Date(y,m-1,1);const off=(wd-first.getDay()+7)%7;return new Date(y,m-1,1+off+(n-1)*7);}
+function lastWeekday(y,m,wd){const last=new Date(y,m,0);const off=(last.getDay()-wd+7)%7;return new Date(y,m-1,last.getDate()-off);}
+function easterDate(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da);}
+function holidayDate(h,y){
+  let d=null;
+  if(h.fixed)d=new Date(y,h.fixed[0]-1,h.fixed[1]);
+  else if(h.nth)d=nthWeekday(y,h.nth[0],h.nth[1],h.nth[2]);
+  else if(h.last)d=lastWeekday(y,h.last[0],h.last[1]);
+  else if(h.easter)d=easterDate(y);
+  if(d&&h.offset)d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+h.offset);
+  return d;
+}
+const _holCache={};
+function holidaysByDate(y){
+  if(_holCache[y])return _holCache[y];
+  const m={};
+  HOLIDAYS.filter(h=>h.on).forEach(h=>{const d=holidayDate(h,y);if(d){const ds=ymd(d);(m[ds]=m[ds]||[]).push(h.name);}});
+  return _holCache[y]=m;
+}
+function holidaysOn(ds){return holidaysByDate(+ds.slice(0,4))[ds]||[];}
+const HOL_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg>';
+function holidayChips(ds){
+  return holidaysOn(ds).map(n=>`<button type="button" class="hol" data-hol="${esc(n)}" data-holdate="${ds}" title="${esc(n)} — click to plan a post for this day">${HOL_ICON}<span>${esc(n)}</span></button>`).join("");
+}
+function upcomingHolidays(){
+  const t=new Date();t.setHours(0,0,0,0);const out=[];
+  for(let i=0;i<=HOLIDAY_LEAD;i++){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const ds=ymd(d);holidaysOn(ds).forEach(n=>out.push({name:n,ds,days:i,d}));}
+  return out;
+}
+function holidayStrip(){
+  const up=upcomingHolidays();
+  if(!up.length)return "";
+  return `<div class="cal-upcoming"><span class="lbl">Coming up</span>${up.map(u=>`<button type="button" class="upc" data-holjump="${u.ds}" data-hol="${esc(u.name)}" title="Open ${u.ds} on the calendar"><b>${esc(u.name)}</b><span>${u.days===0?"today":u.days===1?"tomorrow":"in "+u.days+" days"} · ${u.d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span></button>`).join("")}</div>`;
+}
 function calendarHTML(tasks){
   const dated={}, nodate=[];
   tasks.forEach(t=>{const tp=TYPE_MAP[t.type];if(tp&&tp.due&&t.dueDate)(dated[t.dueDate]=dated[t.dueDate]||[]).push(t);else nodate.push(t);});
@@ -2518,9 +2619,9 @@ function calendarHTML(tasks){
       const d=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+i);
       const ds=ymd(d), isToday=ds===todayLocal;
       const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds)+rchPlanFor(ds);
-      cells+=`<div class="cal-cell week ${isToday?"today":""}" data-date="${ds}"><span class="cal-daylabel">${dow[d.getDay()]} <b>${d.getDate()}</b></span>${chips}</div>`;
+      cells+=`<div class="cal-cell week ${isToday?"today":""}" data-date="${ds}"><span class="cal-daylabel">${dow[d.getDay()]} <b>${d.getDate()}</b></span>${holidayChips(ds)}${chips}</div>`;
     }
-    return `<div class="cal cal-week">${calHeader(title)}${calLegend()}<div class="cal-grid week">${cells}</div>${nodateStrip(nodate)}</div>`;
+    return `<div class="cal cal-week">${calHeader(title)}${calLegend()}${holidayStrip()}<div class="cal-grid week">${cells}</div>${nodateStrip(nodate)}</div>`;
   }
   const month=state.calMonth, y=month.getFullYear(), m=month.getMonth();
   const title=month.toLocaleDateString(undefined,{month:"long",year:"numeric"});
@@ -2534,10 +2635,10 @@ function calendarHTML(tasks){
     // month view is still a real working week, and hiding its unscheduled slots
     // made this week look fully booked whenever you were viewing next month.
     const chips=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds)+rchPlanFor(ds);
-    cells+=`<div class="cal-cell ${other?"other":""} ${isToday?"today":""}" data-date="${ds}"><span class="cal-num">${d.getDate()}</span>${chips}</div>`;
+    cells+=`<div class="cal-cell ${other?"other":""} ${isToday?"today":""}" data-date="${ds}"><span class="cal-num">${d.getDate()}</span>${holidayChips(ds)}${chips}</div>`;
   }
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
-  return `<div class="cal cal-month">${calHeader(title)}${calLegend()}${dowHTML}<div class="cal-grid">${cells}</div>${nodateStrip(nodate)}</div>`;
+  return `<div class="cal cal-month">${calHeader(title)}${calLegend()}${holidayStrip()}${dowHTML}<div class="cal-grid">${cells}</div>${nodateStrip(nodate)}</div>`;
 }
 /* Phone calendar (v2.24.0). Same chips, same handlers, different shape: a week
    is a day-by-day list, a month is a grid of dots with the tapped day listed
@@ -2553,7 +2654,7 @@ function calendarPhoneHTML({dated,nodate,todayLocal,ghostsFor,dow}){
   const chipsFor=ds=>{if(!(ds in cache))cache[ds]=(dated[ds]||[]).map(calChip).join("")+ghostsFor(ds)+rchPlanFor(ds);return cache[ds];};
   const agendaDay=(d)=>{
     const ds=ymd(d), chips=chipsFor(ds), n=(chips.match(/class="cchip/g)||[]).length;
-    return `<div class="cal-aday ${ds===todayLocal?"today":""}" data-aday="${ds}"><div class="cal-ahead"><span class="wd">${dow[d.getDay()]}</span><b>${d.toLocaleDateString(undefined,{month:"short",day:"numeric"})}</b>${n?`<span class="n">${n}</span>`:""}${state.locked?"":`<button class="cal-addday" type="button" data-addday="${ds}">+ Add</button>`}</div>${chips||`<div class="empty-day">Nothing scheduled</div>`}</div>`;
+    return `<div class="cal-aday ${ds===todayLocal?"today":""}" data-aday="${ds}"><div class="cal-ahead"><span class="wd">${dow[d.getDay()]}</span><b>${d.toLocaleDateString(undefined,{month:"short",day:"numeric"})}</b>${n?`<span class="n">${n}</span>`:""}${state.locked?"":`<button class="cal-addday" type="button" data-addday="${ds}">+ Add</button>`}</div>${holidayChips(ds)}${chips||`<div class="empty-day">Nothing scheduled</div>`}</div>`;
   };
   const legend=`<div class="cal-lgbar"><button class="cal-lgtoggle" type="button" data-lgtoggle="1">${state.calLegendOpen?"Hide legend":"Legend"}</button></div>`
     +calLegend().replace('class="cal-legend"',`class="cal-legend ${state.calLegendOpen?"open":""}"`);
@@ -2563,7 +2664,7 @@ function calendarPhoneHTML({dated,nodate,todayLocal,ghostsFor,dow}){
     const title=`${ws.toLocaleDateString(undefined,{month:"short",day:"numeric"})} – ${end.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}`;
     let days="";
     for(let i=0;i<7;i++)days+=agendaDay(new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+i));
-    return `<div class="cal cal-week phone">${calHeader(title)}${legend}<div class="cal-agenda">${days}</div>${nodateStrip(nodate)}</div>`;
+    return `<div class="cal cal-week phone">${calHeader(title)}${legend}${holidayStrip()}<div class="cal-agenda">${days}</div>${nodateStrip(nodate)}</div>`;
   }
   const month=state.calMonth, y=month.getFullYear(), m=month.getMonth();
   const title=month.toLocaleDateString(undefined,{month:"long",year:"numeric"});
@@ -2582,10 +2683,10 @@ function calendarPhoneHTML({dated,nodate,todayLocal,ghostsFor,dow}){
     const dots=list.map(t=>`<i class="cal-dot" style="background:${calDotColor(t)}"></i>`)
       .concat(Array(nMiss).fill('<i class="cal-dot missed"></i>'),Array(nGhost).fill('<i class="cal-dot ghost"></i>'),Array(nPlan).fill('<i class="cal-dot plan"></i>'));
     const more=dots.length-4;
-    cells+=`<div class="cal-cell mini ${other?"other":""} ${isToday?"today":""} ${ds===sel?"sel":""}" data-pday="${ds}" role="button" aria-label="${ds}, ${dots.length} item${dots.length===1?"":"s"}"><span class="cal-num">${d.getDate()}</span><span class="cal-dots">${dots.slice(0,4).join("")}</span>${more>0?`<span class="cal-more">+${more}</span>`:""}</div>`;
+    cells+=`<div class="cal-cell mini ${other?"other":""} ${isToday?"today":""} ${ds===sel?"sel":""} ${holidaysOn(ds).length?"has-hol":""}" data-pday="${ds}" role="button" aria-label="${ds}, ${dots.length} item${dots.length===1?"":"s"}"><span class="cal-num">${d.getDate()}</span><span class="cal-dots">${dots.slice(0,4).join("")}</span>${more>0?`<span class="cal-more">+${more}</span>`:""}</div>`;
   }
   const dowHTML=`<div class="cal-dow">${dow.map(d=>`<span>${d}</span>`).join("")}</div>`;
-  return `<div class="cal cal-month phone">${calHeader(title)}${legend}${dowHTML}<div class="cal-grid mini">${cells}</div><div class="cal-agenda">${agendaDay(new Date(sel+"T00:00:00"))}</div>${nodateStrip(nodate)}</div>`;
+  return `<div class="cal cal-month phone">${calHeader(title)}${legend}${holidayStrip()}${dowHTML}<div class="cal-grid mini">${cells}</div><div class="cal-agenda">${agendaDay(new Date(sel+"T00:00:00"))}</div>${nodateStrip(nodate)}</div>`;
 }
 let calDrag=null, calDragged=false;
 function calCellUnder(x,y){const el=document.elementFromPoint(x,y);return el?el.closest(".cal-cell[data-date]"):null;}
@@ -2708,6 +2809,9 @@ function bindCalendar(scope){
   });
   scope.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{state.calMode=b.dataset.mode;render();});
   scope.querySelectorAll(".cal-cell.mini[data-pday]").forEach(c=>c.addEventListener("click",()=>{state.calDay=c.dataset.pday;render();}));
+  // a holiday marker opens New Entry on that day with the holiday named; the "Coming up" line jumps the calendar there
+  scope.querySelectorAll(".hol[data-holdate]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();if(state.locked)return;openAdd(b.dataset.holdate);const f=$("#fName");if(f&&!f.value)f.value=b.dataset.hol+" post";}));
+  scope.querySelectorAll(".upc[data-holjump]").forEach(b=>b.addEventListener("click",()=>{const d=new Date(b.dataset.holjump+"T00:00:00");if(state.calMode==="week")state.calWeek=weekStart(d);else{state.calMonth=new Date(d.getFullYear(),d.getMonth(),1);state.calDay=b.dataset.holjump;}render();}));
   scope.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openAdd(b.dataset.addday);}));
   scope.querySelectorAll("[data-lgtoggle]").forEach(b=>b.addEventListener("click",()=>{state.calLegendOpen=!state.calLegendOpen;render();}));
   scope.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{state.chipColor=b.dataset.color;render();});
